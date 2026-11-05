@@ -445,6 +445,7 @@ async function comprobarPerimetro() {
 
   if (fuera && !fueraAnterior) {
     registrarAlerta("Salida del perímetro");
+    document.dispatchEvent(new CustomEvent("geocuidado:perimetro", {detail: {fuera: true, posicion: {...posicionActual}}}));
 
     if (alarmaAutomatica) {
       try {
@@ -457,6 +458,7 @@ async function comprobarPerimetro() {
 
   if (!fuera && fueraAnterior) {
     registrarAlerta("Regreso a zona segura");
+    document.dispatchEvent(new CustomEvent("geocuidado:perimetro", {detail: {fuera: false, posicion: {...posicionActual}}}));
 
     if (alarmaAutomatica) {
       try {
@@ -568,6 +570,7 @@ $("loginForm").addEventListener(
 
       $("login").classList.add("hidden");
 
+      document.dispatchEvent(new Event("geocuidado:login"));
       iniciarMapa();
       actualizarCirculo();
 
@@ -595,6 +598,7 @@ $("logout").addEventListener("click", () => {
   clearInterval(intervaloGPS);
   intervaloGPS = null;
 
+  document.dispatchEvent(new Event("geocuidado:logout"));
   idToken = null;
   refreshToken = null;
   tokenExpira = 0;

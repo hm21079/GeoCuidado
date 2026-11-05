@@ -339,3 +339,16 @@ a {
     height: 380px;
   }
 }
+
+/* Módulos de cuidados y responsables */
+.care-form {display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 28px}
+.care-form label {display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:14px}
+.care-form input,.care-form select {width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:#0e192c;color:#fff}
+.care-form button {align-self:end;min-height:44px}
+.care-list {display:grid;gap:12px;margin:14px 0 24px}
+.care-item {border:1px solid var(--border);border-radius:10px;padding:14px;background:#142542;overflow-wrap:anywhere}
+.care-item strong {display:block;margin-bottom:7px}
+.care-item p {margin:6px 0;color:var(--muted)}
+.care-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.care-actions button,.care-actions a {border-radius:7px;padding:9px 12px;background:#314d78;color:white;text-decoration:none;font-size:14px}
+.care-actions .delete {background:#853d4d}
