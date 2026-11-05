@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "dispositivos": {
+      "gps001": {
+        ".read": "auth != null && auth.uid === '4fcx3asaTcSl2jlmncWvmuJqaU2'",
+        ".write": "auth != null && auth.uid === '4fcx3asaTcSl2jlmncWvmuJqaU2'",
+        "latitud": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+        "longitud": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+        "satelites": {".validate": "newData.isNumber() && newData.val() >= 0"},
+        "altitud": {".validate": "newData.isNumber()"},
+        "timestamp": {".validate": "newData.isNumber()"},
+        "control": {
+          "buzzerManual": {".validate": "newData.isBoolean()"}
+        },
+        "zona": {
+          "latitud": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+          "longitud": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+          "radio": {".validate": "newData.isNumber() && newData.val() >= 10 && newData.val() <= 10000"},
+          "activa": {".validate": "newData.isBoolean()"}
+        },
+        "estado": {
+          "buzzerEncendido": {".validate": "newData.isBoolean()"},
+          "fueraZona": {".validate": "newData.isBoolean()"},
+          "timestamp": {".validate": "newData.isNumber()"}
+        }
+      }
+    }
+  }
+}
