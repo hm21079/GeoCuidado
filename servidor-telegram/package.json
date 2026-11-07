@@ -1,0 +1,11 @@
+{
+  "name": "geocuidado-telegram-local",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Servidor local de alertas Telegram GeoCuidado con Firebase Spark",
+  "scripts": {
+    "start": "node server.js",
+    "test:telegram": "node server.js --test"
+  },
+  "engines": {"node": ">=20"}
+}

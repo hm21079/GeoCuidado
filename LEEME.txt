@@ -1,4 +1,4 @@
-GeoCuidado - Backend de WhatsApp (Firebase Cloud Functions)
+GeoCuidado - Backend de Telegram (Firebase Cloud Functions)
 
 IMPORTANTE:
 1. El plan Spark NO permite desplegar Cloud Functions. Cambia a Blaze antes de desplegar.
@@ -7,12 +7,12 @@ IMPORTANTE:
    geocuidado_alerta (idioma es): {{1}} / {{2}}
    geocuidado_cuidado (idioma es): {{1}} / {{2}} / {{3}} / {{4}}
    Si Meta aprueba otros nombres o idioma, edita functions/index.js.
-4. Cada responsable debe tener telefono (ej. 70578422) y whatsappAutorizado: true.
+4. Cada responsable debe tener telefono (ej. 70578422) y telegramAutorizado: true.
    Obtén consentimiento explícito antes de activar este campo.
 5. Instala Node.js y Firebase CLI. Ejecuta:
    npm install -g firebase-tools
    firebase login
-   cd GeoCuidado_WhatsApp/functions
+   cd GeoCuidado_Telegram/functions
    npm install
    cd ..
    firebase functions:secrets:set WA_TOKEN
@@ -23,6 +23,6 @@ IMPORTANTE:
    Para detectar perímetro sin navegador, hay que mover la detección al ESP32 o al backend.
 7. La función de recordatorios sí se ejecuta en el servidor cada minuto y solo contempla
    cuidados de fecha única o diarios. La programación semanal/mensual requiere ampliación.
-8. Los registros de envío quedan en /dispositivos/gps001/enviosWhatsApp.
+8. Los registros de envío quedan en /dispositivos/gps001/enviosTelegram.
 9. El estado aceptado_por_meta NO confirma entrega. Configura webhooks para estados reales.
 10. No usar como único sistema de emergencia para personas vulnerables.

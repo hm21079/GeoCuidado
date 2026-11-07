@@ -13,7 +13,7 @@ Se conservó el código GPS, buzzer, Firebase, mapa y perímetro. Se añadieron 
 - Los recordatorios se comprueban **solo con la página abierta**; no hay servicio de notificaciones en segundo plano.
 - Los correos **no se envían automáticamente**. El enlace mailto requiere que el usuario envíe el correo en su aplicación.
 - El perímetro se sigue evaluando desde la web abierta, como en la versión original. No equivale a vigilancia permanente en un servidor.
-- Para avisos automáticos reales a responsables, implementar un backend (p. ej. Cloud Functions + proveedor de correo/SMS/WhatsApp), autorización y consentimiento.
+- Los avisos se envían por el servidor local Telegram a los responsables vinculados mediante el bot.
 - La agenda se repite diariamente y utiliza la zona horaria del dispositivo donde está abierto el navegador.
 - El buzzer y la ubicación dependen del hardware, cobertura GPS y conectividad; no sustituye supervisión humana.
 - Protege el acceso y restringe la lectura de datos de salud y ubicación a personas autorizadas.

@@ -4,21 +4,49 @@
 <head>
   <meta charset="UTF-8">
 
-  <!-- Adaptación a dispositivos móviles -->
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
+  <!-- Adaptación a celular y PC (viewport-fit permite usar toda la pantalla en iPhone) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0c1729">
 
   <title>GeoCuidado | Centro de monitoreo GPS</title>
 
+  <!-- Tipografía (si no hay internet se usa la fuente del sistema) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+
+  <!-- Librería Leaflet para el mapa (no requiere API key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <!-- Estilos principales -->
   <link rel="stylesheet" href="css/style.css">
-
-  <!-- Librería Leaflet para el mapa GPS -->
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 
 <body>
+
+<!-- Iconos (se reutilizan con <use href="#id">) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v11.5h14V9"/><path d="M10 20.5v-6h4v6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+  <symbol id="i-shield-alert" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V6z"/><path d="M12 8v5M12 16.5v.01"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 3v3M16 3v3"/><path d="m9 15 2 2 4-4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M17.5 14.6c2.3.3 3.7 1.9 4 4.4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="m16 8 4 4-4 4M20 12H9"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-volume-x" viewBox="0 0 24 24"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6M21 9l-5 6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-signal" viewBox="0 0 24 24"><path d="M5 19v-3M10 19v-7M15 19V8M20 19V4"/></symbol>
+  <symbol id="i-ruler" viewBox="0 0 24 24"><circle cx="5.5" cy="17.5" r="2.5"/><circle cx="18.5" cy="6.5" r="2.5"/><path d="m7.3 15.7 9.4-7.4"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></symbol>
+  <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-check-all" viewBox="0 0 24 24"><path d="m3 12.5 4 4 8-9"/><path d="m12 15.5 1.5 1.5 8-9"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></symbol>
+</svg>
 
 <!-- ==========================================
      1. INICIO DE SESIÓN
@@ -26,23 +54,58 @@
 
 <div id="login" class="login-overlay">
 
+  <!-- Panel visual (solo se muestra en pantallas grandes) -->
+  <div class="login-hero" aria-hidden="true">
+
+    <svg class="login-rings" viewBox="0 0 600 600" fill="none">
+      <circle cx="300" cy="300" r="70"  class="ring"/>
+      <circle cx="300" cy="300" r="130" class="ring"/>
+      <circle cx="300" cy="300" r="190" class="ring ring-safe"/>
+      <circle cx="300" cy="300" r="250" class="ring"/>
+      <circle cx="300" cy="300" r="295" class="ring"/>
+      <circle cx="300" cy="300" r="8" class="ring-dot"/>
+      <circle cx="300" cy="300" r="22" class="ring-pulse"/>
+    </svg>
+
+    <div class="brand login-hero-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-pin"/></svg></span>
+      <span class="brand-name">GeoCuidado</span>
+    </div>
+
+    <div class="login-hero-copy">
+      <h2>Sabe dónde está quien cuidas.</h2>
+      <p>
+        Ubicación en tiempo real, zona segura con alarma
+        y recordatorios de cuidado en un solo panel.
+      </p>
+    </div>
+
+  </div>
+
   <form id="loginForm" class="login-card">
 
-    <h1>📍 GeoCuidado</h1>
+    <div class="brand login-card-brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-pin"/></svg></span>
+      <span class="brand-name">GeoCuidado</span>
+    </div>
+
+    <h1>Iniciar sesión</h1>
     <p>Acceso seguro al monitoreo GPS</p>
 
+    <label for="email">Correo electrónico</label>
     <input
       id="email"
       type="email"
-      placeholder="Correo electrónico"
+      placeholder="nombre@correo.com"
       autocomplete="username"
       required
     >
 
+    <label for="password">Contraseña</label>
     <input
       id="password"
       type="password"
-      placeholder="Contraseña"
+      placeholder="Tu contraseña"
       autocomplete="current-password"
       required
     >
@@ -67,38 +130,73 @@
 
   <aside class="sidebar">
 
-    <h2>📍 GeoCuidado</h2>
+    <!-- Marca -->
 
-    <button class="nav active" data-view="inicio">
-      Inicio
-    </button>
+    <div class="brand">
+      <span class="brand-mark"><svg class="ico"><use href="#i-pin"/></svg></span>
+      <span class="brand-name">GeoCuidado</span>
+    </div>
 
-    <button class="nav" data-view="alarmas">
-      Alarmas
-    </button>
+    <!-- Navegación: en PC es el menú lateral, en celular es la barra inferior -->
 
-    <button class="nav" data-view="alertas">
-      Alertas
-    </button>
+    <nav class="nav-list" aria-label="Secciones">
 
-    <button class="nav" data-view="cuidados">
-      Cuidados y horarios
-    </button>
+      <button class="nav active" data-view="inicio">
+        <svg class="ico"><use href="#i-home"/></svg>
+        <span>Inicio</span>
+      </button>
 
-    <button class="nav" data-view="responsables">
-      Responsables
-    </button>
+      <button class="nav" data-view="alarmas">
+        <svg class="ico"><use href="#i-shield"/></svg>
+        <span>Alarmas</span>
+      </button>
 
-    <button class="nav" data-view="ajustes">
-      Ajustes
-    </button>
+      <button class="nav" data-view="alertas">
+        <svg class="ico"><use href="#i-bell"/></svg>
+        <span>Alertas</span>
+      </button>
 
-    <!-- Cerrar sesión -->
+      <button class="nav" data-view="cuidados">
+        <svg class="ico"><use href="#i-calendar"/></svg>
+        <span>
+          <span class="t-full">Cuidados y horarios</span>
+          <span class="t-short">Cuidados</span>
+        </span>
+      </button>
+
+      <button class="nav" data-view="responsables">
+        <svg class="ico"><use href="#i-users"/></svg>
+        <span>
+          <span class="t-full">Responsables</span>
+          <span class="t-short">Contactos</span>
+        </span>
+      </button>
+
+      <button class="nav" data-view="ajustes">
+        <svg class="ico"><use href="#i-sliders"/></svg>
+        <span>Ajustes</span>
+      </button>
+
+    </nav>
+
+    <!-- Dispositivo y cierre de sesión -->
 
     <div class="sidebar-bottom">
-      <button id="logout">
-        Cerrar sesión
+
+      <div class="device-chip">
+        <span class="device-dot"></span>
+        <div>
+          <small>Dispositivo vinculado</small>
+          <strong>gps001</strong>
+        </div>
+      </div>
+
+      <button id="logout" class="logout-btn" type="button">
+        <svg class="ico"><use href="#i-logout"/></svg>
+        <span class="t-full">Cerrar sesión</span>
+        <span class="t-short">Salir</span>
       </button>
+
     </div>
 
   </aside>
@@ -113,7 +211,7 @@
 
     <header class="topbar">
 
-      <div>
+      <div class="topbar-title">
         <h1>Centro de monitoreo GPS</h1>
 
         <p>
@@ -135,7 +233,7 @@
             aria-label="Abrir notificaciones"
             aria-expanded="false"
           >
-            🔔
+            <svg class="ico"><use href="#i-bell"/></svg>
 
             <span
               id="notificationCount"
@@ -152,7 +250,7 @@
             hidden
           >
 
-            <h3>🔔 Notificaciones</h3>
+            <h3>Notificaciones</h3>
 
             <div id="notificationPreview">
 
@@ -200,22 +298,24 @@
 
             <h2>Ubicación en tiempo real</h2>
 
-            <span id="ultimaActualizacion">
+            <span id="ultimaActualizacion" class="chip">
               Sin reporte
             </span>
 
           </div>
 
-          <!-- Mapa Leaflet / Esri -->
+          <!-- Mapa Leaflet con OpenStreetMap -->
 
-          <div id="map"></div>
+          <div class="map-frame">
+            <div id="map"></div>
+          </div>
 
           <!-- Control del perímetro -->
 
           <div class="control">
 
             <label for="radio">
-              Perímetro de seguridad:
+              Perímetro de seguridad
               <strong id="radioTexto">50 m</strong>
             </label>
 
@@ -233,6 +333,7 @@
               class="primary"
               type="button"
             >
+              <svg class="ico"><use href="#i-crosshair"/></svg>
               Fijar zona en la ubicación actual
             </button>
 
@@ -246,34 +347,59 @@
 
           <!-- Estado del GPS -->
 
-          <div class="panel">
+          <div class="panel status-card" id="statusCard" data-estado="espera">
 
-            <span class="muted">
+            <span class="muted card-label">
               Estado del dispositivo
             </span>
 
-            <h2 id="estadoGPS">
-              Esperando GPS...
-            </h2>
+            <div class="state">
 
-            <p id="coordenadas">
-              Sin coordenadas
-            </p>
+              <span class="state-icon">
+                <svg class="ico i-wait"><use href="#i-clock"/></svg>
+                <svg class="ico i-safe"><use href="#i-shield-check"/></svg>
+                <svg class="ico i-alert"><use href="#i-shield-alert"/></svg>
+              </span>
 
-            <p id="satelites">
-              Satélites: --
-            </p>
+              <h2 id="estadoGPS">
+                Esperando GPS...
+              </h2>
 
-            <p id="distancia">
-              Distancia al centro: --
-            </p>
+            </div>
+
+            <div class="facts">
+
+              <div class="fact">
+                <svg class="ico"><use href="#i-pin"/></svg>
+                <p id="coordenadas">
+                  Sin coordenadas
+                </p>
+              </div>
+
+              <div class="fact">
+                <svg class="ico"><use href="#i-signal"/></svg>
+                <p id="satelites">
+                  Satélites: --
+                </p>
+              </div>
+
+              <div class="fact">
+                <svg class="ico"><use href="#i-ruler"/></svg>
+                <p id="distancia">
+                  Distancia al centro: --
+                </p>
+              </div>
+
+            </div>
 
             <a
               id="googleLink"
+              class="link-btn"
               href="#"
               target="_blank"
               rel="noopener noreferrer"
             >
+              <svg class="ico"><use href="#i-external"/></svg>
               Abrir en Google Maps
             </a>
 
@@ -281,11 +407,11 @@
 
           <!-- Control del buzzer -->
 
-          <div class="panel">
+          <div class="panel buzzer-card">
 
             <h2>Control del buzzer</h2>
 
-            <p id="buzzerEstado">
+            <p id="buzzerEstado" class="buzzer-state">
               Estado desconocido
             </p>
 
@@ -296,6 +422,7 @@
                 class="danger"
                 type="button"
               >
+                <svg class="ico"><use href="#i-volume"/></svg>
                 Activar
               </button>
 
@@ -304,6 +431,7 @@
                 class="secondary"
                 type="button"
               >
+                <svg class="ico"><use href="#i-volume-x"/></svg>
                 Desactivar
               </button>
 
@@ -317,7 +445,7 @@
 
           <!-- Protección perimetral -->
 
-          <div class="panel">
+          <div class="panel zone-card">
 
             <h2>Protección perimetral</h2>
 
@@ -377,7 +505,7 @@
 
       <div class="panel">
 
-        <h2>🔔 Centro de notificaciones</h2>
+        <h2>Centro de notificaciones</h2>
 
         <p class="muted">
           Avisos de medicamentos, actividades programadas
@@ -390,6 +518,7 @@
             id="marcarTodasLeidas"
             type="button"
           >
+            <svg class="ico"><use href="#i-check-all"/></svg>
             Marcar todas como leídas
           </button>
 
@@ -397,6 +526,7 @@
             id="actualizarNotificaciones"
             type="button"
           >
+            <svg class="ico"><use href="#i-refresh"/></svg>
             Actualizar notificaciones
           </button>
 
@@ -793,7 +923,7 @@
 
         <p class="muted">
           Registra a las personas responsables del cuidado.
-          Las notificaciones se consultan dentro de GeoCuidado.
+          Las notificaciones se consultan en GeoCuidado y se envían por Telegram a los responsables vinculados.
         </p>
 
         <form
@@ -840,38 +970,12 @@
 
           </label>
 
-          <!-- TELÉFONO: obligatorio, solo números, 8 dígitos -->
-          <label for="telefonoResponsable">
-            Número de celular
-            <input
-              id="telefonoResponsable"
-              type="tel"
-              inputmode="numeric"
-              pattern="[0-9]{8}"
-              minlength="8"
-              maxlength="8"
-              autocomplete="tel-national"
-              placeholder="Ej. 71234567"
-              title="Ingresa exactamente 8 dígitos numéricos"
-              required
-            >
-          </label>
-
-          <!-- Autorización WhatsApp -->
-
-          <label class="consentimiento-whatsapp">
-
-            <input
-              id="whatsappAutorizado"
-              type="checkbox"
-            >
-
-            <span>
-              Confirmo que este responsable aceptó recibir
-              avisos de GeoCuidado por WhatsApp.
-            </span>
-
-          </label>
+          <!-- Vinculación individual por Telegram: el enlace se genera al guardar -->
+          <div class="telegram-help" style="grid-column:1/-1;padding:14px;border:1px solid #355779;border-radius:12px">
+            <strong>Notificaciones por Telegram</strong>
+            <p>Guarda al responsable y luego pulsa «Vincular Telegram» en su tarjeta. La persona debe abrir el bot y pulsar Iniciar. No se necesita número de celular.</p>
+            <a href="https://t.me/GeoCuidadoAlertasBot" target="_blank" rel="noopener noreferrer">Abrir @GeoCuidadoAlertasBot</a>
+          </div>
 
           <!-- Agregar responsable -->
 
@@ -913,24 +1017,31 @@
 
         <h2>Configuración</h2>
 
-        <p>
-          Dispositivo:
-          <strong>gps001</strong>
-        </p>
+        <dl class="settings-list">
 
-        <p>
-          Base de datos: Firebase Realtime Database
-        </p>
+          <div>
+            <dt>Dispositivo</dt>
+            <dd>gps001</dd>
+          </div>
 
-        <p>
-          Mapa: Leaflet / Esri
-        </p>
+          <div>
+            <dt>Base de datos</dt>
+            <dd>Firebase Realtime Database</dd>
+          </div>
+
+          <div>
+            <dt>Mapa</dt>
+            <dd>Leaflet con OpenStreetMap</dd>
+          </div>
+
+        </dl>
 
         <button
           id="actualizarDatos"
           class="primary"
           type="button"
         >
+          <svg class="ico"><use href="#i-refresh"/></svg>
           Actualizar datos
         </button>
 
@@ -949,6 +1060,48 @@
 <!-- ==========================================
      10. NOTIFICACIONES EMERGENTES
 ========================================== -->
+
+<!-- ==========================================
+     MODAL DE CONFIRMACIÓN (Sí / No)
+========================================== -->
+
+<div id="modalConfirmar" class="modal-overlay hidden">
+
+  <div
+    class="modal-card"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="modalConfirmarTitulo"
+    aria-describedby="modalConfirmarTexto"
+  >
+
+    <h3 id="modalConfirmarTitulo">¿Estás seguro?</h3>
+
+    <p id="modalConfirmarTexto"></p>
+
+    <div class="modal-actions">
+
+      <button
+        id="modalConfirmarNo"
+        class="secondary"
+        type="button"
+      >
+        No
+      </button>
+
+      <button
+        id="modalConfirmarSi"
+        class="danger"
+        type="button"
+      >
+        Sí
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 
 <div
   id="notificationToastContainer"
@@ -1004,6 +1157,9 @@
 
 <!-- Funciones de agenda y responsables -->
 <script src="js/cuidados.js"></script>
+
+<!-- Detalles de interfaz (estados de color, scroll al cambiar de sección) -->
+<script src="js/ui.js"></script>
 
 </body>
 </html>

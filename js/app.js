@@ -180,7 +180,7 @@ async function firebaseRequest(
 }
 
 // ============================================
-// 7. INICIALIZAR MAPA LEAFLET + ESRI
+// 7. INICIALIZAR MAPA LEAFLET (SIN API KEY)
 // ============================================
 
 function iniciarMapa() {
@@ -192,35 +192,71 @@ function iniciarMapa() {
   const inicial = [13.703783, -89.173117];
 
   // Crear mapa con Leaflet.
+  // Los botones de zoom se agregan después
+  // para controlar su posición.
   mapa = L.map("map", {
     center: inicial,
     zoom: 17,
-    zoomControl: true
+    zoomControl: false
   });
 
   // ==========================================
-  // CARTOGRAFÍA DE ESRI
+  // CAPA DEL MAPA: OpenStreetMap (sin API key)
   // ==========================================
 
-  // Restaurar el mapa de calles anterior.
-  L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+  const capaOSM = L.tileLayer(
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     {
-      attribution: "Tiles &copy; Esri",
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">' +
+        "OpenStreetMap</a> contributors",
       maxZoom: 19
     }
   ).addTo(mapa);
 
+  // Si los mosaicos no cargan, avisar una sola vez.
+  let avisoMapa = false;
+
+  capaOSM.on("tileerror", () => {
+
+    if (avisoMapa) return;
+    avisoMapa = true;
+
+    mostrarMensaje(
+      "No se pudieron cargar los mosaicos de OpenStreetMap. " +
+      "Abre la app con Live Server (http://localhost) " +
+      "y revisa tu conexión."
+    );
+  });
+
+  // Escala en metros (útil para ver el perímetro).
+  L.control.scale({
+    imperial: false,
+    position: "bottomleft"
+  }).addTo(mapa);
+
+  // Zoom abajo a la derecha.
+  L.control.zoom({
+    position: "bottomright"
+  }).addTo(mapa);
+
   // ==========================================
-  // MARCADOR AZUL DEL DISPOSITIVO GPS
+  // MARCADOR DEL DISPOSITIVO GPS (CON PULSO)
   // ==========================================
 
-  marcador = L.circleMarker(inicial, {
-    radius: 9,
-    color: "#ffffff",
-    weight: 3,
-    fillColor: "#3b82f6",
-    fillOpacity: 1
+  const iconoGPS = L.divIcon({
+    className: "gps-pin",
+    html:
+      '<span class="pulse"></span>' +
+      '<span class="dot"></span>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16]
+  });
+
+  marcador = L.marker(inicial, {
+    icon: iconoGPS,
+    keyboard: false
   }).addTo(mapa);
 
   // Información del marcador.
@@ -235,10 +271,57 @@ function iniciarMapa() {
   circulo = L.circle(inicial, {
     radius: radioZona,
     color: "#10b981",
-    weight: 2,
+    weight: 2.5,
     fillColor: "#10b981",
-    fillOpacity: 0.15
+    fillOpacity: 0.16
   }).addTo(mapa);
+
+  // ==========================================
+  // BOTÓN: CENTRAR EN EL DISPOSITIVO
+  // ==========================================
+
+  const BotonCentrar = L.Control.extend({
+
+    options: { position: "bottomright" },
+
+    onAdd: function () {
+
+      const caja = L.DomUtil.create(
+        "div",
+        "leaflet-bar leaflet-control gc-locate"
+      );
+
+      const enlace = L.DomUtil.create("a", "", caja);
+
+      enlace.href = "#";
+      enlace.title = "Centrar en el dispositivo";
+      enlace.setAttribute("role", "button");
+      enlace.setAttribute(
+        "aria-label",
+        "Centrar en el dispositivo"
+      );
+
+      enlace.innerHTML =
+        '<svg class="ico" style="width:20px;height:20px">' +
+        '<use href="#i-crosshair"/></svg>';
+
+      L.DomEvent.disableClickPropagation(caja);
+
+      L.DomEvent.on(enlace, "click", function (e) {
+
+        L.DomEvent.stop(e);
+
+        mapa.setView(
+          marcador.getLatLng(),
+          Math.max(mapa.getZoom(), 17)
+        );
+      });
+
+      return caja;
+    }
+  });
+
+  new BotonCentrar().addTo(mapa);
 
   // Ajustar el mapa al tamaño del contenedor.
   setTimeout(() => {
@@ -648,6 +731,101 @@ function registrarAlerta(texto) {
 }
 
 // ============================================
+// 15.1 MODAL DE CONFIRMACIÓN (Sí / No)
+// ============================================
+//
+// Uso:
+//   const ok = await confirmarAccion({
+//     titulo: "¿Eliminar?",
+//     mensaje: "Esta acción no se puede deshacer.",
+//     textoConfirmar: "Sí, eliminar",
+//     textoCancelar: "No"
+//   });
+//   if (!ok) return;
+
+function confirmarAccion(opciones = {}) {
+
+  const {
+    titulo = "¿Estás seguro?",
+    mensaje = "",
+    textoConfirmar = "Sí",
+    textoCancelar = "No"
+  } = opciones;
+
+  const modal = $("modalConfirmar");
+  const btnSi = $("modalConfirmarSi");
+  const btnNo = $("modalConfirmarNo");
+
+  $("modalConfirmarTitulo").textContent = titulo;
+  $("modalConfirmarTexto").textContent = mensaje;
+  btnSi.textContent = textoConfirmar;
+  btnNo.textContent = textoCancelar;
+
+  const previo = document.activeElement;
+
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-abierto");
+
+  // El foco inicia en "No" para evitar confirmar sin querer.
+  btnNo.focus();
+
+  return new Promise(resolve => {
+
+    function cerrar(resultado) {
+
+      modal.classList.add("hidden");
+      document.body.classList.remove("modal-abierto");
+
+      btnSi.removeEventListener("click", alSi);
+      btnNo.removeEventListener("click", alNo);
+      modal.removeEventListener("mousedown", alFondo);
+      document.removeEventListener("keydown", alTeclado, true);
+
+      if (previo && previo.focus) previo.focus();
+
+      resolve(resultado);
+    }
+
+    const alSi = () => cerrar(true);
+    const alNo = () => cerrar(false);
+
+    // Clic fuera de la tarjeta = cancelar.
+    const alFondo = e => {
+      if (e.target === modal) cerrar(false);
+    };
+
+    const alTeclado = e => {
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cerrar(false);
+        return;
+      }
+
+      // Mantener el foco dentro del modal.
+      if (e.key === "Tab") {
+
+        const botones = [btnNo, btnSi];
+        const i = botones.indexOf(document.activeElement);
+
+        e.preventDefault();
+
+        const siguiente = e.shiftKey
+          ? botones[(i <= 0 ? botones.length : i) - 1]
+          : botones[(i + 1) % botones.length];
+
+        siguiente.focus();
+      }
+    };
+
+    btnSi.addEventListener("click", alSi);
+    btnNo.addEventListener("click", alNo);
+    modal.addEventListener("mousedown", alFondo);
+    document.addEventListener("keydown", alTeclado, true);
+  });
+}
+
+// ============================================
 // 16. MOSTRAR MENSAJES
 // ============================================
 
@@ -747,7 +925,7 @@ $("loginForm").addEventListener(
       );
 
       // ======================================
-      // INICIAR MAPA LEAFLET + ESRI
+      // INICIAR MAPA LEAFLET
       // ======================================
 
       iniciarMapa();
@@ -778,7 +956,19 @@ $("loginForm").addEventListener(
 
 $("logout").addEventListener(
   "click",
-  () => {
+  async () => {
+
+    // Pedir confirmación antes de cerrar la sesión.
+    const confirmado = await confirmarAccion({
+      titulo: "¿Cerrar sesión?",
+      mensaje:
+        "Dejarás de ver la ubicación en tiempo real " +
+        "hasta que vuelvas a iniciar sesión.",
+      textoConfirmar: "Sí, cerrar sesión",
+      textoCancelar: "No, quedarme"
+    });
+
+    if (!confirmado) return;
 
     // Detener consultas GPS.
     clearInterval(intervaloGPS);
@@ -980,5 +1170,5 @@ document.querySelectorAll(".nav").forEach(
 // ============================================
 
 console.log(
-  "GeoCuidado iniciado correctamente con Leaflet + Esri."
+  "GeoCuidado iniciado correctamente con Leaflet."
 );

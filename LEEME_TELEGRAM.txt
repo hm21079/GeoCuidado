@@ -1,0 +1,1 @@
+Servidor Telegram: carpeta servidor-telegram. Lee servidor-telegram/INSTRUCCIONES.md. Los responsables se vinculan mediante enlaces individuales desde la aplicación.

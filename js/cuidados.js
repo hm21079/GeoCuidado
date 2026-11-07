@@ -7,11 +7,11 @@ GEOCUIDADO - CUIDADOS Y NOTIFICACIONES
 Funciones:
 - Agenda de medicamentos y actividades
 - Repeticiones programadas
-- Responsables y teléfonos
+- Responsables vinculados a Telegram
 - Notificaciones internas
 - Avisos y alertas de perímetro
 - Integración con Firebase Realtime Database
-- Compatible con Leaflet + Esri
+- Compatible con Leaflet + OpenStreetMap
 
 Requiere que js/app.js se cargue primero.
 ==================================================
@@ -651,18 +651,9 @@ Requiere que js/app.js se cargue primero.
               ${esc(r.nombre)} · ${esc(r.tipo)}
             </strong>
 
-            <p>
-              <b>Celular:</b>
-              ${esc(r.telefono || "No registrado")}
-            </p>
-
-            <p>
-              ${
-                r.whatsappAutorizado === true
-                  ? "WhatsApp autorizado"
-                  : "WhatsApp no autorizado"
-              }
-            </p>
+            <p><b>Telegram:</b> ${r.telegramCodigo ? "Enlace de vinculación disponible" : "Registro antiguo: crea uno nuevo para vincular"}</p>
+            ${r.telegramCodigo ? `<p><a href="https://t.me/GeoCuidadoAlertasBot?start=${encodeURIComponent(r.telegramCodigo)}" target="_blank" rel="noopener noreferrer">🔗 Vincular Telegram de ${esc(r.nombre)}</a></p>` : ""}
+            <p class="muted">El responsable debe pulsar Iniciar en Telegram. Las alertas comenzarán a llegar después de vincularse.</p>
 
             <div class="care-actions">
               <button
@@ -1044,19 +1035,14 @@ Requiere que js/app.js se cargue primero.
       e.preventDefault();
 
       try {
-        // El formulario actual no utiliza correo.
+        // Código aleatorio único por responsable. No se almacena el token del bot en la web.
+        const bytes = new Uint8Array(18);
+        crypto.getRandomValues(bytes);
+        const codigo = "gc_" + Array.from(bytes, x => x.toString(16).padStart(2,"0")).join("");
         const dato = {
-          nombre:
-            el("nombreResponsable").value.trim(),
-
-          tipo:
-            el("tipoResponsable").value,
-
-          telefono:
-            el("telefonoResponsable").value.trim(),
-
-          whatsappAutorizado:
-            el("whatsappAutorizado").checked
+          nombre: el("nombreResponsable").value.trim(),
+          tipo: el("tipoResponsable").value,
+          telegramCodigo: codigo
         };
 
         if (!dato.nombre) {
@@ -1072,13 +1058,6 @@ Requiere que js/app.js se cargue primero.
         ) {
           throw Error(
             "Selecciona una relación válida."
-          );
-        }
-
-        // Validar exactamente 8 dígitos.
-        if (!/^[0-9]{8}$/.test(dato.telefono)) {
-          throw Error(
-            "El número celular debe tener exactamente 8 dígitos."
           );
         }
 
@@ -1118,9 +1097,16 @@ Requiere que js/app.js se cargue primero.
 
       if (!id) return;
 
-      if (!confirm("¿Eliminar recordatorio?")) {
-        return;
-      }
+      const confirmado = await confirmarAccion({
+        titulo: "¿Eliminar recordatorio?",
+        mensaje:
+          "Se borrará este recordatorio y no podrás " +
+          "recuperarlo.",
+        textoConfirmar: "Sí, eliminar",
+        textoCancelar: "No, conservar"
+      });
+
+      if (!confirmado) return;
 
       try {
         await firebaseRequest(
@@ -1155,9 +1141,16 @@ Requiere que js/app.js se cargue primero.
 
       if (!id) return;
 
-      if (!confirm("¿Eliminar responsable?")) {
-        return;
-      }
+      const confirmado = await confirmarAccion({
+        titulo: "¿Eliminar responsable?",
+        mensaje:
+          "Este contacto dejará de recibir avisos de " +
+          "GeoCuidado y no podrás recuperarlo.",
+        textoConfirmar: "Sí, eliminar",
+        textoCancelar: "No, conservar"
+      });
+
+      if (!confirmado) return;
 
       try {
         await firebaseRequest(
@@ -1351,7 +1344,7 @@ Requiere que js/app.js se cargue primero.
           true
         );
 
-        // Los avisos externos por WhatsApp
+        // Los avisos externos por Telegram
         // se gestionan desde el servidor.
         // No se envían desde el navegador.
 
