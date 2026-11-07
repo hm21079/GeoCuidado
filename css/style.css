@@ -1,3 +1,22 @@
+/* ==================================================
+   GEOCUIDADO - ESTILOS PRINCIPALES
+   Centro de monitoreo GPS
+
+   Módulos:
+   1. Configuración general
+   2. Menú lateral
+   3. Dashboard y mapa
+   4. Inicio de sesión
+   5. Agenda de cuidados
+   6. Responsables
+   7. Notificaciones
+   8. Diseño adaptable
+================================================== */
+
+
+/* ==================================================
+   1. VARIABLES DE COLORES
+================================================== */
 
 :root {
   --bg: #0e192c;
@@ -9,55 +28,117 @@
   --blue: #58a9ff;
   --green: #20d6a0;
   --red: #ff6477;
+  --input-bg: #0e192c;
 }
+
+
+/* ==================================================
+   2. CONFIGURACIÓN GENERAL
+================================================== */
+
+/* Evita problemas con anchos y bordes */
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  width: 100%;
+  min-height: 100%;
+}
+
 body {
   margin: 0;
+  min-width: 0;
+
   font-family: Arial, Helvetica, sans-serif;
+
   background: var(--bg);
   color: var(--text);
 }
 
-button, input {
+/* Fuente uniforme */
+
+button,
+input,
+select,
+textarea {
   font: inherit;
 }
+
+/* Botones */
 
 button {
   cursor: pointer;
   border: none;
 }
 
+/* Enlaces */
+
+a {
+  color: var(--blue);
+}
+
+/* Elementos ocultos por JavaScript */
+
+[hidden],
+.hidden {
+  display: none !important;
+}
+
+
+/* ==================================================
+   3. ESTRUCTURA PRINCIPAL
+================================================== */
+
 .layout {
   display: flex;
+  width: 100%;
   min-height: 100vh;
 }
 
+
+/* ==================================================
+   4. MENÚ LATERAL
+================================================== */
+
 .sidebar {
   width: 230px;
+  flex: 0 0 230px;
+
   background: var(--sidebar);
+
   padding: 24px 14px;
+
   display: flex;
   flex-direction: column;
+
   gap: 10px;
+
   border-right: 1px solid var(--border);
 }
+
+/* Logo GeoCuidado */
 
 .sidebar h2 {
   font-size: 21px;
   margin: 0 8px 28px;
 }
 
+/* Opciones del menú */
+
 .nav {
   padding: 15px;
+
   border-radius: 10px;
+
   background: transparent;
   color: var(--muted);
+
   text-align: left;
 }
+
+/* Opción seleccionada */
 
 .nav:hover,
 .nav.active {
@@ -65,30 +146,48 @@ button {
   color: var(--blue);
 }
 
+/* Parte inferior del menú */
+
 .sidebar-bottom {
   margin-top: auto;
 }
 
+/* Cerrar sesión */
+
 .sidebar-bottom button {
   width: 100%;
   padding: 13px;
+
   border-radius: 8px;
+
   color: white;
   background: #354867;
 }
 
+
+/* ==================================================
+   5. CONTENIDO PRINCIPAL
+================================================== */
+
 .content {
   flex: 1;
-  padding: 26px;
   min-width: 0;
+
+  padding: 26px;
 }
+
+/* Encabezado */
 
 .topbar {
   display: flex;
+
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+
+  flex-wrap: wrap;
+
   gap: 16px;
+  margin-bottom: 25px;
 }
 
 .topbar h1 {
@@ -96,47 +195,88 @@ button {
   font-size: 25px;
 }
 
+/* Textos secundarios */
+
 .topbar p,
 .muted {
   color: var(--muted);
   font-size: 13px;
 }
 
+/* Estado de conexión */
+
 .status {
   padding: 9px 15px;
+
   border: 1px solid var(--border);
   border-radius: 25px;
+
   color: var(--green);
+
   white-space: nowrap;
 }
 
+
+/* ==================================================
+   6. DASHBOARD GPS
+================================================== */
+
+/* Distribución de mapa y paneles */
+
 .dashboard {
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+
+  grid-template-columns:
+    minmax(0, 1.7fr)
+    minmax(280px, 1fr);
+
   gap: 18px;
 }
 
+/* Tarjetas generales */
+
 .panel {
   background: var(--panel);
+
   border: 1px solid var(--border);
   border-radius: 16px;
+
   padding: 20px;
   margin-bottom: 16px;
+
+  min-width: 0;
+
+  /*
+    Permite adaptar los formularios
+    al ancho disponible del panel.
+  */
+
+  container-type: inline-size;
 }
+
+/* Títulos de paneles */
 
 .panel h2 {
   font-size: 18px;
   margin: 8px 0 16px;
 }
 
+/* Párrafos */
+
 .panel p {
   line-height: 1.6;
 }
 
+/* Encabezado interno */
+
 .panel-header {
   display: flex;
+
   justify-content: space-between;
   align-items: center;
+
+  flex-wrap: wrap;
+
   gap: 10px;
 }
 
@@ -145,13 +285,29 @@ button {
   font-size: 12px;
 }
 
+
+/* ==================================================
+   7. MAPA GPS
+================================================== */
+
 #map {
-  height: 570px;
   width: 100%;
+  height: 530px;
+  min-height: 350px;
+
   border-radius: 12px;
+
   background: #e5e7eb;
+
   overflow: hidden;
+
+  z-index: 1;
 }
+
+
+/* ==================================================
+   8. CONTROLES GPS
+================================================== */
 
 .control {
   padding-top: 18px;
@@ -162,35 +318,55 @@ button {
   margin-bottom: 14px;
 }
 
+/* Barra de radio de seguridad */
+
 input[type="range"] {
   width: 100%;
+
   accent-color: var(--blue);
+
   margin-bottom: 16px;
 }
+
+
+/* ==================================================
+   9. BOTONES GENERALES
+================================================== */
 
 .primary,
 .danger,
 .secondary {
   padding: 13px 16px;
+
   border-radius: 9px;
+
   font-weight: bold;
 }
+
+/* Botón principal */
 
 .primary {
   background: var(--blue);
   color: #081526;
+
   width: 100%;
 }
+
+/* Botón peligro */
 
 .danger {
   background: #e94761;
   color: white;
 }
 
+/* Botón secundario */
+
 .secondary {
   background: #354c70;
   color: white;
 }
+
+/* Botones agrupados */
 
 .button-row {
   display: flex;
@@ -199,49 +375,74 @@ input[type="range"] {
 
 .button-row button {
   flex: 1;
+  min-width: 0;
 }
+
+/* Casillas generales */
 
 .check {
   display: flex;
-  gap: 10px;
   align-items: center;
+
+  gap: 10px;
   margin-top: 15px;
 }
 
-a {
-  color: var(--blue);
-}
+
+/* ==================================================
+   10. VISTAS DE NAVEGACIÓN
+================================================== */
+
+/* Ocultar vistas no seleccionadas */
 
 .view {
   display: none;
 }
 
+/* Mostrar vista seleccionada */
+
 .view.active {
   display: block;
 }
 
+
+/* ==================================================
+   11. INICIO DE SESIÓN
+================================================== */
+
 .login-overlay {
   position: fixed;
   inset: 0;
+
   background: #081321;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   z-index: 9999;
+
   padding: 20px;
 }
 
+/* Ocultar login */
+
 .login-overlay.hidden {
-  display: none;
+  display: none !important;
 }
+
+/* Tarjeta de acceso */
 
 .login-card {
   background: var(--panel);
+
   border: 1px solid var(--border);
+  border-radius: 18px;
+
   padding: 32px;
+
   width: 100%;
   max-width: 390px;
-  border-radius: 18px;
 }
 
 .login-card h1 {
@@ -252,103 +453,1044 @@ a {
   color: var(--muted);
 }
 
+/* Correo y contraseña */
+
 .login-card input {
   display: block;
+
   width: 100%;
   padding: 14px;
+
   margin: 15px 0;
+
   background: #101e34;
-  border: 1px solid #506789;
   color: white;
+
+  border: 1px solid #506789;
   border-radius: 9px;
 }
 
+/* Botón ingresar */
+
 .login-card button {
   background: var(--blue);
+
   width: 100%;
   padding: 14px;
+
   border-radius: 9px;
+
   font-weight: bold;
 }
+
+/* Errores */
 
 .error {
   color: #ff9ca7 !important;
   font-size: 13px;
 }
 
+/* Mensajes */
+
 .mensaje {
   color: var(--muted);
   font-size: 13px;
+
+  margin-top: 15px;
 }
+
+
+/* ==================================================
+   12. HISTORIAL
+================================================== */
 
 #historial > div {
   border-bottom: 1px solid var(--border);
   padding: 12px 0;
 }
 
+
+/* ==================================================
+   13. FORMULARIOS GENERALES
+================================================== */
+
+/*
+  Se utiliza en:
+
+  - Agenda de cuidados
+  - Responsables
+
+  Cada módulo define sus propias columnas.
+*/
+
+.care-form {
+  display: grid;
+
+  gap: 12px;
+
+  width: 100%;
+  min-width: 0;
+
+  margin: 20px 0 28px;
+
+  align-items: end;
+}
+
+/* Etiquetas */
+
+.care-form label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+
+  width: 100%;
+  min-width: 0;
+
+  margin: 0;
+
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Campos */
+
+.care-form input,
+.care-form select,
+.care-form textarea {
+  display: block;
+
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+
+  height: 44px;
+
+  padding: 10px 12px;
+
+  background: var(--input-bg);
+  color: white;
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Campos desplegables */
+
+.care-form select {
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+/* Efecto de enfoque */
+
+.care-form input:focus,
+.care-form select:focus,
+.care-form textarea:focus {
+  outline: none;
+
+  border-color: var(--blue);
+
+  box-shadow:
+    0 0 0 2px rgba(88, 169, 255, 0.15);
+}
+
+/* Botones dentro de formularios */
+
+.care-form > button {
+  grid-column: 1 / -1;
+
+  justify-self: start;
+
+  width: auto;
+  min-height: 44px;
+
+  padding: 0 20px;
+
+  white-space: nowrap;
+}
+
+
+/* ==================================================
+   14. AGENDA DE CUIDADOS
+================================================== */
+
+/*
+  Distribución en computadoras:
+
+  Actividad
+  Nombre
+  Indicaciones
+  Fecha
+  Hora
+  Repetición
+
+  El campo Hora es más estrecho.
+*/
+
+#formCuidado {
+  grid-template-columns:
+    minmax(0, 1.05fr)
+    minmax(0, 1.15fr)
+    minmax(0, 1.15fr)
+    minmax(0, 1fr)
+    minmax(0, 0.68fr)
+    minmax(0, 1.25fr);
+}
+
+/* Hora compacta */
+
+#horaCuidado {
+  width: 100%;
+  min-width: 0;
+
+  padding: 8px 5px;
+
+  font-size: 13px;
+}
+
+/* Repetición */
+
+#repeticionCuidado {
+  width: 100%;
+  min-width: 0;
+}
+
+
+/* ==================================================
+   15. OPCIONES DE REPETICIÓN
+================================================== */
+
+/*
+  Los paneles de repetición ocupan
+  una fila completa del formulario.
+*/
+
+#formCuidado > .repeat-panel,
+#formCuidado > .repeat-extra {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* Panel de opciones */
+
+.repeat-panel {
+  background: #142542;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  padding: 16px;
+}
+
+.repeat-panel h4 {
+  margin: 0 0 14px;
+}
+
+/* Días de la semana */
+
+.repeat-days {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+}
+
+/* Etiquetas de días */
+
+.care-form .repeat-days label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+
+  width: auto;
+  min-width: 0;
+
+  gap: 6px;
+
+  background: var(--input-bg);
+
+  border: 1px solid var(--border);
+  border-radius: 8px;
+
+  padding: 10px;
+
+  color: var(--text);
+
+  cursor: pointer;
+}
+
+/* Casillas de selección */
+
+.care-form .repeat-days input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+
+  min-width: 16px;
+
+  flex: 0 0 auto;
+
+  margin: 0;
+
+  accent-color: var(--blue);
+}
+
+/* Días del mes */
+
+.repeat-month {
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fill, minmax(65px, 1fr));
+
+  gap: 8px;
+}
+
+.care-form .repeat-month label {
+  justify-content: center;
+}
+
+
+/* ==================================================
+   16. INTERVALO PERSONALIZADO
+================================================== */
+
+#opcionesIntervalo label {
+  max-width: 260px;
+}
+
+#intervaloCuidado {
+  width: 100%;
+}
+
+
+/* ==================================================
+   17. FECHA FINAL DE REPETICIÓN
+================================================== */
+
+#finRepeticionContenedor {
+  grid-column: 1 / -1;
+}
+
+#finRepeticionContenedor > label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+
+/* ==================================================
+   18. FORMULARIO DE RESPONSABLES
+================================================== */
+
+/*
+  ACTUALIZACIÓN:
+
+  Ahora solo existen tres campos:
+
+  1. Nombre completo
+  2. Relación
+  3. Número de celular
+
+  Se eliminó el correo electrónico.
+*/
+
+#formResponsable {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 12px;
+
+  align-items: end;
+}
+
+/* Nombre del responsable */
+
+#nombreResponsable {
+  width: 100%;
+}
+
+/* Selector de relación */
+
+#tipoResponsable {
+  width: 100%;
+}
+
+/* Número celular */
+
+#telefonoResponsable {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Autorización de WhatsApp */
+
+#formResponsable .consentimiento-whatsapp {
+  grid-column: 1 / -1;
+
+  display: flex;
+  flex-direction: row;
+
+  align-items: flex-start;
+
+  gap: 10px;
+
+  width: 100%;
+
+  overflow-wrap: anywhere;
+}
+
+/* Checkbox WhatsApp */
+
+#formResponsable #whatsappAutorizado {
+  width: 17px;
+  height: 17px;
+
+  min-width: 17px;
+
+  flex: 0 0 auto;
+
+  margin: 0;
+
+  accent-color: var(--blue);
+}
+
+/* Texto de autorización */
+
+.consentimiento-whatsapp span {
+  flex: 1;
+  min-width: 0;
+
+  line-height: 1.5;
+}
+
+/* Botón agregar responsable */
+
+#formResponsable > button {
+  grid-column: 1 / -1;
+
+  justify-self: start;
+
+  width: auto;
+  min-height: 44px;
+
+  padding: 0 20px;
+}
+
+
+/* ==================================================
+   19. CONTACTOS Y RECORDATORIOS
+================================================== */
+
+.care-list {
+  display: grid;
+
+  gap: 12px;
+  margin: 14px 0 24px;
+}
+
+/* Tarjetas */
+
+.care-item {
+  background: #142542;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  padding: 14px;
+
+  overflow-wrap: anywhere;
+}
+
+/* Nombre */
+
+.care-item strong {
+  display: block;
+  margin-bottom: 7px;
+}
+
+/* Información */
+
+.care-item p {
+  margin: 6px 0;
+  color: var(--muted);
+}
+
+/* Acciones */
+
+.care-actions {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.care-actions button,
+.care-actions a {
+  padding: 9px 12px;
+
+  background: #314d78;
+  color: white;
+
+  border-radius: 7px;
+
+  text-decoration: none;
+  font-size: 14px;
+}
+
+/* Eliminar contacto o recordatorio */
+
+.care-actions .delete {
+  background: #853d4d;
+}
+
+
+/* ==================================================
+   20. CAMPANA DE NOTIFICACIONES
+================================================== */
+
+.notification-top {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+/* Botón de campana */
+
+.notification-bell {
+  position: relative;
+
+  width: 47px;
+  height: 47px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--panel);
+  color: white;
+
+  border: 1px solid #38577f;
+  border-radius: 13px;
+
+  font-size: 22px;
+}
+
+.notification-bell:hover {
+  background: #28446e;
+}
+
+/* Contador */
+
+.notification-count {
+  position: absolute;
+
+  top: -7px;
+  right: -7px;
+
+  min-width: 21px;
+
+  padding: 3px 6px;
+
+  background: #ef476f;
+  color: white;
+
+  border-radius: 20px;
+
+  font-size: 11px;
+  font-weight: bold;
+
+  text-align: center;
+}
+
+
+/* ==================================================
+   21. PANEL DE NOTIFICACIONES
+================================================== */
+
+.notification-dropdown {
+  position: absolute;
+
+  right: 0;
+  top: 58px;
+
+  width: min(390px, calc(100vw - 24px));
+
+  max-height: 470px;
+
+  overflow-y: auto;
+
+  background: #142542;
+
+  border: 1px solid #38577f;
+  border-radius: 15px;
+
+  box-shadow: 0 18px 50px #0008;
+
+  z-index: 5000;
+
+  padding: 15px;
+}
+
+.notification-dropdown h3 {
+  margin: 0 0 12px;
+}
+
+/* Notificación individual */
+
+.notification-entry {
+  background: var(--input-bg);
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  padding: 12px;
+  margin-bottom: 9px;
+
+  overflow-wrap: anywhere;
+}
+
+/* No leída */
+
+.notification-entry.unread {
+  border-left: 4px solid var(--blue);
+}
+
+.notification-entry p {
+  margin: 7px 0;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Fecha */
+
+.notification-date {
+  color: #9cb6d8;
+  font-size: 12px;
+}
+
+/* Botones de notificaciones */
+
+.notification-actions {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.notification-actions button,
+.notification-action {
+  background: var(--border);
+  color: white;
+
+  padding: 9px 12px;
+
+  border-radius: 8px;
+
+  font-size: 12px;
+}
+
+.notification-actions button:hover,
+.notification-action:hover {
+  background: #406697;
+}
+
+/* Listado */
+
+.notification-list {
+  display: grid;
+  gap: 12px;
+
+  margin-top: 18px;
+}
+
+/* Barra de acciones */
+
+.notification-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.notification-toolbar button {
+  padding: 11px 15px;
+
+  background: var(--border);
+  color: white;
+
+  border-radius: 9px;
+}
+
+/* Sin notificaciones */
+
+.notification-empty {
+  color: var(--muted);
+
+  padding: 18px;
+
+  text-align: center;
+}
+
+
+/* ==================================================
+   22. NOTIFICACIONES EMERGENTES
+================================================== */
+
+.notification-toast-container {
+  position: fixed;
+
+  right: 22px;
+  bottom: 22px;
+
+  width: min(390px, calc(100vw - 30px));
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  z-index: 8000;
+
+  pointer-events: none;
+}
+
+/* Tarjeta emergente */
+
+.notification-toast {
+  pointer-events: auto;
+
+  padding: 16px;
+
+  background: var(--panel);
+
+  border: 1px solid #43638f;
+  border-left: 5px solid var(--blue);
+
+  border-radius: 12px;
+
+  box-shadow: 0 12px 35px #0008;
+
+  animation: toastEntrada 0.25s ease-out;
+
+  overflow-wrap: anywhere;
+}
+
+/* Advertencia */
+
+.notification-toast.warning {
+  border-left-color: var(--red);
+}
+
+/* Confirmación */
+
+.notification-toast.success {
+  border-left-color: var(--green);
+}
+
+.notification-toast strong {
+  display: block;
+  margin-bottom: 7px;
+}
+
+.notification-toast p {
+  margin: 0 0 12px;
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notification-toast button {
+  background: var(--border);
+  color: white;
+
+  padding: 8px 12px;
+
+  border-radius: 7px;
+}
+
+/* Animación */
+
+@keyframes toastEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ==================================================
+   23. ADAPTACIÓN AL ANCHO DEL PANEL
+================================================== */
+
+/*
+  CSS Container Queries.
+
+  Permite que los formularios se adapten
+  al espacio disponible dentro del panel.
+*/
+
+/* Panel mediano */
+
+@container (max-width: 1100px) {
+
+  /* Agenda de cuidados */
+
+  #formCuidado {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+/* Panel más estrecho */
+
+@container (max-width: 680px) {
+
+  /* Agenda */
+
+  #formCuidado {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  /* Responsables */
+
+  #formResponsable {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+/* Panel pequeño */
+
+@container (max-width: 440px) {
+
+  /* Formularios en una columna */
+
+  #formCuidado,
+  #formResponsable {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Botones a todo el ancho */
+
+  #formCuidado > button,
+  #formResponsable > button {
+    width: 100%;
+  }
+
+}
+
+
+/* ==================================================
+   24. TABLETS
+================================================== */
+
 @media (max-width: 950px) {
+
+  /* Dashboard vertical */
+
   .dashboard {
     grid-template-columns: 1fr;
   }
 
+  /* Menú más estrecho */
+
   .sidebar {
     width: 170px;
+    flex-basis: 170px;
   }
+
+  /* Mapa */
 
   #map {
     height: 450px;
   }
+
 }
 
+
+/* ==================================================
+   25. CELULARES
+================================================== */
+
 @media (max-width: 600px) {
+
+  /* Menú encima del contenido */
+
   .layout {
     display: block;
   }
 
+  /* Menú horizontal */
+
   .sidebar {
     width: 100%;
+    flex-basis: auto;
+
     flex-direction: row;
     flex-wrap: wrap;
+
+    gap: 6px;
     padding: 12px;
+
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
+
+  /* Nombre GeoCuidado */
 
   .sidebar h2 {
     width: 100%;
     margin: 5px;
   }
 
+  /* Opciones de navegación */
+
   .nav {
-    flex: 1;
+    flex: 1 1 120px;
+
+    min-width: 0;
+
     text-align: center;
     padding: 10px 5px;
   }
+
+  /* Cerrar sesión */
 
   .sidebar-bottom {
     width: 100%;
   }
 
+  /* Contenido */
+
   .content {
     padding: 14px;
+  }
+
+  /* Encabezado */
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .topbar h1 {
     font-size: 19px;
   }
 
+  /* Notificaciones */
+
+  .notification-top {
+    margin-left: auto;
+    gap: 7px;
+  }
+
+  .notification-bell {
+    width: 42px;
+    height: 42px;
+  }
+
+  /* Paneles */
+
+  .panel {
+    padding: 14px;
+  }
+
+  /* Mapa */
+
   #map {
     height: 380px;
   }
+
+  /* Avisos emergentes */
+
+  .notification-toast-container {
+    right: 15px;
+    bottom: 15px;
+  }
+
+  /* Botones GPS */
+
+  .button-row {
+    flex-wrap: wrap;
+  }
+
+  .button-row button {
+    min-width: 110px;
+  }
+
 }
 
-/* Módulos de cuidados y responsables */
-.care-form {display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:20px 0 28px}
-.care-form label {display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:14px}
-.care-form input,.care-form select {width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;background:#0e192c;color:#fff}
-.care-form button {align-self:end;min-height:44px}
-.care-list {display:grid;gap:12px;margin:14px 0 24px}
-.care-item {border:1px solid var(--border);border-radius:10px;padding:14px;background:#142542;overflow-wrap:anywhere}
-.care-item strong {display:block;margin-bottom:7px}
-.care-item p {margin:6px 0;color:var(--muted)}
-.care-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.care-actions button,.care-actions a {border-radius:7px;padding:9px 12px;background:#314d78;color:white;text-decoration:none;font-size:14px}
-.care-actions .delete {background:#853d4d}
+
+/* ==================================================
+   26. CELULARES MUY PEQUEÑOS
+================================================== */
+
+@media (max-width: 380px) {
+
+  /* Espaciado */
+
+  .content {
+    padding: 10px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  /* Título */
+
+  .topbar h1 {
+    font-size: 18px;
+  }
+
+  /* Menú en dos columnas */
+
+  .nav {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  /* Mapa compacto */
+
+  #map {
+    height: 320px;
+    min-height: 300px;
+  }
+
+  /* Formularios */
+
+  .care-form {
+    gap: 12px;
+  }
+
+  .care-form input,
+  .care-form select {
+    font-size: 14px;
+  }
+
+}
+
+
+/* ==================================================
+   FIN - GEOCUIDADO STYLE.CSS
+================================================== */

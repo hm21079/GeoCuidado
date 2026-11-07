@@ -1,699 +1,1008 @@
-
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GeoCuidado | Centro de monitoreo GPS</title>
+  <meta charset="UTF-8">
 
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <!-- Adaptación a dispositivos móviles -->
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
-<style>
-#map {
-  width:100%;
-  height:530px;
-  min-height:350px;
-  border-radius:12px;
-  background:#e5e7eb;
-  z-index:1;
-}
-.hidden {display:none!important}
-.mensaje {margin-top:15px;color:#60a5fa}
+  <title>GeoCuidado | Centro de monitoreo GPS</title>
 
-/* REPETICIONES */
-.repeat-panel {
-  grid-column:1/-1;
-  background:#142542;
-  border:1px solid #304c78;
-  border-radius:10px;
-  padding:16px;
-}
-.repeat-panel[hidden],
-.repeat-extra[hidden] {display:none!important}
-.repeat-panel h4 {margin:0 0 14px}
-.repeat-days {
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-}
-.repeat-days label {
-  display:inline-flex;
-  flex-direction:row;
-  align-items:center;
-  gap:6px;
-  background:#0e192c;
-  border:1px solid #304c78;
-  border-radius:8px;
-  padding:10px;
-  color:#f2f6ff;
-  cursor:pointer;
-}
-.repeat-days input {
-  width:auto;
-  accent-color:#58a9ff;
-}
-.repeat-month {
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(65px,1fr));
-  gap:8px;
-}
-.repeat-month label {justify-content:center}
-.repeat-extra {grid-column:1/-1}
+  <!-- Estilos principales -->
+  <link rel="stylesheet" href="css/style.css">
 
-/* CAMPANITA */
-.notification-top {
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-.notification-wrapper {position:relative}
-.notification-bell {
-  position:relative;
-  width:47px;
-  height:47px;
-  border:1px solid #38577f;
-  border-radius:13px;
-  background:#192d50;
-  color:#fff;
-  font-size:22px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-}
-.notification-bell:hover {background:#28446e}
-.notification-count {
-  position:absolute;
-  top:-7px;
-  right:-7px;
-  background:#ef476f;
-  color:#fff;
-  border-radius:20px;
-  padding:3px 6px;
-  min-width:21px;
-  font-size:11px;
-  font-weight:bold;
-  text-align:center;
-}
-.notification-count[hidden] {display:none!important}
-
-/* PANEL DESPLEGABLE */
-.notification-dropdown {
-  position:absolute;
-  right:0;
-  top:58px;
-  width:min(390px,calc(100vw - 24px));
-  max-height:470px;
-  overflow-y:auto;
-  background:#142542;
-  border:1px solid #38577f;
-  border-radius:15px;
-  box-shadow:0 18px 50px #0008;
-  z-index:5000;
-  padding:15px;
-}
-.notification-dropdown[hidden] {display:none!important}
-.notification-dropdown h3 {margin:0 0 12px}
-
-.notification-entry {
-  background:#0e192c;
-  border:1px solid #304c78;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:9px;
-  overflow-wrap:anywhere;
-}
-.notification-entry.unread {
-  border-left:4px solid #58a9ff;
-}
-.notification-entry p {
-  margin:7px 0;
-  font-size:13px;
-  line-height:1.5;
-}
-.notification-date {
-  color:#9cb6d8;
-  font-size:12px;
-}
-.notification-actions {
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  margin-top:10px;
-}
-.notification-actions button,
-.notification-action {
-  background:#304c78;
-  color:#fff;
-  padding:9px 12px;
-  border:0;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:12px;
-}
-.notification-actions button:hover,
-.notification-action:hover {background:#406697}
-
-.notification-list {
-  display:grid;
-  gap:12px;
-  margin-top:18px;
-}
-.notification-toolbar {
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  margin:15px 0;
-}
-.notification-toolbar button {
-  padding:11px 15px;
-  background:#304c78;
-  border-radius:9px;
-  color:#fff;
-  cursor:pointer;
-}
-.notification-empty {
-  color:#a4bde3;
-  padding:18px;
-  text-align:center;
-}
-
-/* AVISOS EMERGENTES */
-.notification-toast-container {
-  position:fixed;
-  right:22px;
-  bottom:22px;
-  width:min(390px,calc(100vw - 30px));
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  z-index:8000;
-  pointer-events:none;
-}
-.notification-toast {
-  pointer-events:auto;
-  padding:16px;
-  background:#192d50;
-  border:1px solid #43638f;
-  border-left:5px solid #58a9ff;
-  border-radius:12px;
-  box-shadow:0 12px 35px #0008;
-  animation:toastEntrada .25s ease-out;
-  overflow-wrap:anywhere;
-}
-.notification-toast.warning {
-  border-left-color:#ff6477;
-}
-.notification-toast.success {
-  border-left-color:#20d6a0;
-}
-.notification-toast strong {
-  display:block;
-  margin-bottom:7px;
-}
-.notification-toast p {
-  margin:0 0 12px;
-  font-size:13px;
-  line-height:1.5;
-}
-.notification-toast button {
-  color:#fff;
-  background:#304c78;
-  border:0;
-  border-radius:7px;
-  padding:8px 12px;
-  cursor:pointer;
-}
-@keyframes toastEntrada {
-  from {opacity:0;transform:translateY(18px)}
-  to {opacity:1;transform:translateY(0)}
-}
-@media(max-width:768px) {
-  #map {height:380px}
-  .notification-top {gap:7px}
-  .notification-bell {width:42px;height:42px}
-  .notification-toast-container {right:15px;bottom:15px}
-}
-</style>
+  <!-- Librería Leaflet para el mapa GPS -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 
 <body>
 
-<!-- LOGIN -->
+<!-- ==========================================
+     1. INICIO DE SESIÓN
+========================================== -->
+
 <div id="login" class="login-overlay">
+
   <form id="loginForm" class="login-card">
+
     <h1>📍 GeoCuidado</h1>
     <p>Acceso seguro al monitoreo GPS</p>
-    <input id="email" type="email"
-      placeholder="Correo electrónico" required>
-    <input id="password" type="password"
-      placeholder="Contraseña" required>
-    <button type="submit">Iniciar sesión</button>
+
+    <input
+      id="email"
+      type="email"
+      placeholder="Correo electrónico"
+      autocomplete="username"
+      required
+    >
+
+    <input
+      id="password"
+      type="password"
+      placeholder="Contraseña"
+      autocomplete="current-password"
+      required
+    >
+
+    <button type="submit">
+      Iniciar sesión
+    </button>
+
     <p id="loginError" class="error"></p>
+
   </form>
+
 </div>
+
+<!-- ==========================================
+     2. ESTRUCTURA GENERAL
+========================================== -->
 
 <div class="layout">
 
-<!-- MENÚ -->
-<aside class="sidebar">
-  <h2>📍 GeoCuidado</h2>
-  <button class="nav active" data-view="inicio">Inicio</button>
-  <button class="nav" data-view="alarmas">Alarmas</button>
-  <button class="nav" data-view="alertas">Alertas</button>
-  <button class="nav" data-view="cuidados">Cuidados y horarios</button>
-  <button class="nav" data-view="responsables">Responsables</button>
-  <button class="nav" data-view="ajustes">Ajustes</button>
+  <!-- MENÚ LATERAL -->
 
-  <div class="sidebar-bottom">
-    <button id="logout">Cerrar sesión</button>
-  </div>
-</aside>
+  <aside class="sidebar">
 
-<main class="content">
+    <h2>📍 GeoCuidado</h2>
 
-<!-- ENCABEZADO -->
-<header class="topbar">
-  <div>
-    <h1>Centro de monitoreo GPS</h1>
-    <p>Seguimiento y protección en tiempo real</p>
-  </div>
+    <button class="nav active" data-view="inicio">
+      Inicio
+    </button>
 
-  <div class="notification-top">
+    <button class="nav" data-view="alarmas">
+      Alarmas
+    </button>
 
-    <div class="notification-wrapper">
-      <button id="notificationBell"
-        class="notification-bell"
-        title="Notificaciones"
-        aria-label="Abrir notificaciones"
-        aria-expanded="false">
-        🔔
-        <span id="notificationCount"
-          class="notification-count" hidden>0</span>
-      </button>
+    <button class="nav" data-view="alertas">
+      Alertas
+    </button>
 
-      <div id="notificationDropdown"
-        class="notification-dropdown" hidden>
-        <h3>🔔 Notificaciones</h3>
+    <button class="nav" data-view="cuidados">
+      Cuidados y horarios
+    </button>
 
-        <div id="notificationPreview">
-          <p class="notification-empty">
-            Sin notificaciones.
-          </p>
-        </div>
+    <button class="nav" data-view="responsables">
+      Responsables
+    </button>
 
-        <button id="verTodasNotificaciones"
-          class="notification-action">
-          Ver todas las notificaciones
-        </button>
-      </div>
-    </div>
+    <button class="nav" data-view="ajustes">
+      Ajustes
+    </button>
 
-    <span id="conexion" class="status">
-      Conectando...
-    </span>
-  </div>
-</header>
+    <!-- Cerrar sesión -->
 
-<!-- INICIO GPS -->
-<section id="inicio" class="view active">
-  <div class="dashboard">
-
-    <div class="panel map-panel">
-      <div class="panel-header">
-        <h2>Ubicación en tiempo real</h2>
-        <span id="ultimaActualizacion">Sin reporte</span>
-      </div>
-
-      <div id="map"></div>
-
-      <div class="control">
-        <label>
-          Perímetro de seguridad:
-          <strong id="radioTexto">50 m</strong>
-        </label>
-
-        <input id="radio" type="range"
-          min="20" max="1000" step="10" value="50">
-
-        <button id="guardarZona" class="primary">
-          Fijar zona en la ubicación actual
-        </button>
-      </div>
-    </div>
-
-    <div class="right-panel">
-
-      <div class="panel">
-        <span class="muted">Estado del dispositivo</span>
-        <h2 id="estadoGPS">Esperando GPS...</h2>
-        <p id="coordenadas">Sin coordenadas</p>
-        <p id="satelites">Satélites: --</p>
-        <p id="distancia">Distancia al centro: --</p>
-
-        <a id="googleLink" href="#"
-          target="_blank" rel="noopener noreferrer">
-          Abrir en Google Maps
-        </a>
-      </div>
-
-      <div class="panel">
-        <h2>Control del buzzer</h2>
-        <p id="buzzerEstado">Estado desconocido</p>
-
-        <div class="button-row">
-          <button id="buzzerOn" class="danger">
-            Activar
-          </button>
-          <button id="buzzerOff" class="secondary">
-            Desactivar
-          </button>
-        </div>
-
-        <p class="muted">
-          El ESP32 recibe los comandos desde Firebase.
-        </p>
-      </div>
-
-      <div class="panel">
-        <h2>Protección perimetral</h2>
-        <p id="zonaEstado">Esperando ubicación...</p>
-
-        <label class="check">
-          <input type="checkbox" id="alarmaAuto" checked>
-          Alarma automática al salir
-        </label>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ALARMAS -->
-<section id="alarmas" class="view">
-  <div class="panel">
-    <h2>Configuración de alarmas</h2>
-    <p>Configura el radio desde la pantalla de inicio.</p>
-    <p>
-      El buzzer se activa al detectar una salida del
-      perímetro cuando la alarma automática está habilitada.
-    </p>
-  </div>
-</section>
-
-<!-- CENTRO DE NOTIFICACIONES -->
-<section id="alertas" class="view">
-
-  <div class="panel">
-    <h2>🔔 Centro de notificaciones</h2>
-
-    <p class="muted">
-      Avisos de medicamentos, actividades programadas
-      y eventos de seguridad registrados en GeoCuidado.
-    </p>
-
-    <div class="notification-toolbar">
-      <button id="marcarTodasLeidas">
-        Marcar todas como leídas
-      </button>
-
-      <button id="actualizarNotificaciones">
-        Actualizar notificaciones
+    <div class="sidebar-bottom">
+      <button id="logout">
+        Cerrar sesión
       </button>
     </div>
 
-    <div id="notificationList" class="notification-list">
-      <p class="notification-empty">
-        No hay notificaciones registradas.
-      </p>
-    </div>
-  </div>
+  </aside>
 
-  <div class="panel">
-    <h2>Historial de eventos de monitoreo</h2>
-    <div id="historial">
-      Sin alertas registradas en esta sesión.
-    </div>
-  </div>
+  <!-- ========================================
+       3. CONTENIDO PRINCIPAL
+  ========================================= -->
 
-</section>
+  <main class="content">
 
-<!-- AGENDA -->
-<section id="cuidados" class="view">
-  <div class="panel">
+    <!-- ENCABEZADO -->
 
-    <h2>Agenda de cuidados</h2>
+    <header class="topbar">
 
-    <p class="muted">
-      Programa medicamentos, aseo, caminatas y otras
-      actividades. Los recordatorios se generan mientras
-      la aplicación permanece abierta.
-    </p>
-
-    <form id="formCuidado" class="care-form">
-
-      <label>
-        Actividad
-        <select id="tipoCuidado" required>
-          <option value="medicamento">Medicamento</option>
-          <option value="aseo">Aseo personal</option>
-          <option value="caminata">Salida a caminar</option>
-          <option value="otro">Otra actividad</option>
-        </select>
-      </label>
-
-      <label>
-        Nombre o descripción
-        <input id="nombreCuidado" required
-          maxlength="120"
-          placeholder="Ej. Medicamento de la mañana">
-      </label>
-
-      <label>
-        Dosis o indicaciones
-        <input id="detalleCuidado" maxlength="250"
-          placeholder="Ej. 1 tableta">
-      </label>
-
-      <label>
-        Fecha de inicio
-        <input id="fechaCuidado" type="date" required>
-      </label>
-
-      <label>
-        Hora
-        <input id="horaCuidado" type="time" required>
-      </label>
-
-      <label>
-        Repetición
-        <select id="repeticionCuidado" required>
-          <option value="unica">Una sola vez</option>
-          <option value="diaria">Todos los días</option>
-          <option value="semanal">Días por semana</option>
-          <option value="mensual">Días por mes</option>
-          <option value="personalizado-dias">
-            Personalizado: cada X días
-          </option>
-          <option value="personalizado-semanas">
-            Personalizado: cada X semanas
-          </option>
-          <option value="personalizado-meses">
-            Personalizado: cada X meses
-          </option>
-        </select>
-      </label>
-
-      <!-- DÍAS SEMANALES -->
-      <div id="opcionesSemana"
-        class="repeat-panel repeat-extra" hidden>
-
-        <h4>Selecciona los días de la semana</h4>
-
-        <div class="repeat-days">
-          <label><input type="checkbox" name="diasSemana" value="1"> Lunes</label>
-          <label><input type="checkbox" name="diasSemana" value="2"> Martes</label>
-          <label><input type="checkbox" name="diasSemana" value="3"> Miércoles</label>
-          <label><input type="checkbox" name="diasSemana" value="4"> Jueves</label>
-          <label><input type="checkbox" name="diasSemana" value="5"> Viernes</label>
-          <label><input type="checkbox" name="diasSemana" value="6"> Sábado</label>
-          <label><input type="checkbox" name="diasSemana" value="0"> Domingo</label>
-        </div>
-      </div>
-
-      <!-- DÍAS MENSUALES -->
-      <div id="opcionesMes"
-        class="repeat-panel repeat-extra" hidden>
-
-        <h4>Selecciona los días del mes</h4>
-
-        <div id="diasMesContenedor"
-          class="repeat-days repeat-month"></div>
-
-        <p class="muted">
-          Los días 29, 30 y 31 se omiten en los meses
-          que no los tengan.
-        </p>
-      </div>
-
-      <!-- INTERVALO -->
-      <div id="opcionesIntervalo"
-        class="repeat-panel repeat-extra" hidden>
-
-        <h4>Intervalo personalizado</h4>
-
-        <label>
-          Repetir cada
-          <input id="intervaloCuidado"
-            type="number" min="1" max="365" value="1">
-        </label>
+      <div>
+        <h1>Centro de monitoreo GPS</h1>
 
         <p>
-          Unidad:
-          <strong id="intervaloUnidad">días</strong>
+          Seguimiento y protección en tiempo real
         </p>
       </div>
 
-      <!-- FINALIZACIÓN -->
-      <div id="finRepeticionContenedor"
-        class="repeat-extra" hidden>
+      <!-- CAMPANA DE NOTIFICACIONES -->
 
-        <label>
-          Finalizar repetición (opcional)
-          <input id="fechaFinCuidado" type="date">
-        </label>
+      <div class="notification-top">
+
+        <div class="notification-wrapper">
+
+          <button
+            id="notificationBell"
+            class="notification-bell"
+            type="button"
+            title="Notificaciones"
+            aria-label="Abrir notificaciones"
+            aria-expanded="false"
+          >
+            🔔
+
+            <span
+              id="notificationCount"
+              class="notification-count"
+              hidden
+            >0</span>
+          </button>
+
+          <!-- Panel desplegable -->
+
+          <div
+            id="notificationDropdown"
+            class="notification-dropdown"
+            hidden
+          >
+
+            <h3>🔔 Notificaciones</h3>
+
+            <div id="notificationPreview">
+
+              <p class="notification-empty">
+                Sin notificaciones.
+              </p>
+
+            </div>
+
+            <button
+              id="verTodasNotificaciones"
+              class="notification-action"
+              type="button"
+            >
+              Ver todas las notificaciones
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- Estado de conexión -->
+
+        <span id="conexion" class="status">
+          Conectando...
+        </span>
+
       </div>
 
-      <button class="primary" type="submit">
-        Guardar recordatorio
-      </button>
+    </header>
 
-    </form>
+    <!-- ======================================
+         4. INICIO - MONITOREO GPS
+    ======================================= -->
 
-    <h3>Recordatorios programados</h3>
+    <section id="inicio" class="view active">
 
-    <div id="listaCuidados" class="care-list">
-      Inicia sesión para consultar la agenda.
-    </div>
+      <div class="dashboard">
 
-  </div>
-</section>
+        <!-- PANEL DEL MAPA -->
 
-<!-- RESPONSABLES -->
-<section id="responsables" class="view">
-  <div class="panel">
+        <div class="panel map-panel">
 
-    <h2>Familiares, médicos y cuidadores</h2>
+          <div class="panel-header">
 
-    <p class="muted">
-      Registra a las personas responsables del cuidado.
-      Las notificaciones se consultan dentro de GeoCuidado.
-    </p>
+            <h2>Ubicación en tiempo real</h2>
 
-    <form id="formResponsable" class="care-form">
+            <span id="ultimaActualizacion">
+              Sin reporte
+            </span>
 
-      <label>
-        Nombre
-        <input id="nombreResponsable"
-          required maxlength="100">
-      </label>
+          </div>
 
-      <label>
-        Relación
-        <select id="tipoResponsable">
-          <option value="Familiar">Familiar</option>
-          <option value="Médico">Médico</option>
-          <option value="Cuidador">Cuidador</option>
-          <option value="Otro">Otro</option>
-        </select>
-      </label>
+          <!-- Mapa Leaflet / Esri -->
 
-      <label>
-        Correo de contacto (opcional)
-        <input id="correoResponsable"
-          type="email" maxlength="180">
-      </label>
+          <div id="map"></div>
 
-      <label>
-        Teléfono de contacto (opcional)
-        <input id="telefonoResponsable"
-          type="tel" maxlength="30">
-      </label>
+          <!-- Control del perímetro -->
 
-      <button class="primary" type="submit">
-        Agregar responsable
-      </button>
+          <div class="control">
 
-    </form>
+            <label for="radio">
+              Perímetro de seguridad:
+              <strong id="radioTexto">50 m</strong>
+            </label>
 
-    <h3>Contactos registrados</h3>
+            <input
+              id="radio"
+              type="range"
+              min="20"
+              max="1000"
+              step="10"
+              value="50"
+            >
 
-    <div id="listaResponsables" class="care-list">
-      Inicia sesión para consultar los contactos.
-    </div>
+            <button
+              id="guardarZona"
+              class="primary"
+              type="button"
+            >
+              Fijar zona en la ubicación actual
+            </button>
 
-    <h3>Avisos del sistema</h3>
+          </div>
 
-    <div id="avisosPendientes" class="care-list">
-      Sin avisos registrados.
-    </div>
+        </div>
 
-  </div>
-</section>
+        <!-- PANELES DE INFORMACIÓN -->
 
-<!-- AJUSTES -->
-<section id="ajustes" class="view">
-  <div class="panel">
-    <h2>Configuración</h2>
+        <div class="right-panel">
 
-    <p>Dispositivo: <strong>gps001</strong></p>
-    <p>Base de datos: Firebase Realtime Database</p>
-    <p>Mapa: Leaflet / Esri</p>
+          <!-- Estado del GPS -->
 
-    <button id="actualizarDatos" class="primary">
-      Actualizar datos
-    </button>
-  </div>
-</section>
+          <div class="panel">
 
-<p id="mensaje" class="mensaje"></p>
+            <span class="muted">
+              Estado del dispositivo
+            </span>
 
-</main>
+            <h2 id="estadoGPS">
+              Esperando GPS...
+            </h2>
+
+            <p id="coordenadas">
+              Sin coordenadas
+            </p>
+
+            <p id="satelites">
+              Satélites: --
+            </p>
+
+            <p id="distancia">
+              Distancia al centro: --
+            </p>
+
+            <a
+              id="googleLink"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Abrir en Google Maps
+            </a>
+
+          </div>
+
+          <!-- Control del buzzer -->
+
+          <div class="panel">
+
+            <h2>Control del buzzer</h2>
+
+            <p id="buzzerEstado">
+              Estado desconocido
+            </p>
+
+            <div class="button-row">
+
+              <button
+                id="buzzerOn"
+                class="danger"
+                type="button"
+              >
+                Activar
+              </button>
+
+              <button
+                id="buzzerOff"
+                class="secondary"
+                type="button"
+              >
+                Desactivar
+              </button>
+
+            </div>
+
+            <p class="muted">
+              El ESP32 recibe los comandos desde Firebase.
+            </p>
+
+          </div>
+
+          <!-- Protección perimetral -->
+
+          <div class="panel">
+
+            <h2>Protección perimetral</h2>
+
+            <p id="zonaEstado">
+              Esperando ubicación...
+            </p>
+
+            <label class="check">
+
+              <input
+                type="checkbox"
+                id="alarmaAuto"
+                checked
+              >
+
+              Alarma automática al salir
+
+            </label>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================
+         5. CONFIGURACIÓN DE ALARMAS
+    ======================================= -->
+
+    <section id="alarmas" class="view">
+
+      <div class="panel">
+
+        <h2>Configuración de alarmas</h2>
+
+        <p>
+          Configura el radio desde la pantalla de inicio.
+        </p>
+
+        <p>
+          El buzzer se activa al detectar una salida
+          del perímetro cuando la alarma automática
+          está habilitada.
+        </p>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================
+         6. CENTRO DE NOTIFICACIONES
+    ======================================= -->
+
+    <section id="alertas" class="view">
+
+      <div class="panel">
+
+        <h2>🔔 Centro de notificaciones</h2>
+
+        <p class="muted">
+          Avisos de medicamentos, actividades programadas
+          y eventos de seguridad registrados en GeoCuidado.
+        </p>
+
+        <div class="notification-toolbar">
+
+          <button
+            id="marcarTodasLeidas"
+            type="button"
+          >
+            Marcar todas como leídas
+          </button>
+
+          <button
+            id="actualizarNotificaciones"
+            type="button"
+          >
+            Actualizar notificaciones
+          </button>
+
+        </div>
+
+        <div
+          id="notificationList"
+          class="notification-list"
+        >
+
+          <p class="notification-empty">
+            No hay notificaciones registradas.
+          </p>
+
+        </div>
+
+      </div>
+
+      <!-- Historial -->
+
+      <div class="panel">
+
+        <h2>Historial de eventos de monitoreo</h2>
+
+        <div id="historial">
+          Sin alertas registradas en esta sesión.
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================
+         7. AGENDA DE CUIDADOS
+    ======================================= -->
+
+    <section id="cuidados" class="view">
+
+      <div class="panel">
+
+        <h2>Agenda de cuidados</h2>
+
+        <p class="muted">
+          Programa medicamentos, aseo, caminatas y otras
+          actividades. Los recordatorios se generan mientras
+          la aplicación permanece abierta.
+        </p>
+
+        <!--
+          FORMULARIO RESPONSIVE
+
+          Cada campo tiene su etiqueta y control
+          dentro del mismo elemento label.
+
+          Esto evita que los campos se desplacen
+          a posiciones incorrectas.
+        -->
+
+        <form id="formCuidado" class="care-form">
+
+          <!-- ACTIVIDAD -->
+
+          <label for="tipoCuidado">
+
+            Actividad
+
+            <select id="tipoCuidado" required>
+
+              <option value="medicamento">
+                Medicamento
+              </option>
+
+              <option value="aseo">
+                Aseo personal
+              </option>
+
+              <option value="caminata">
+                Salida a caminar
+              </option>
+
+              <option value="otro">
+                Otra actividad
+              </option>
+
+            </select>
+
+          </label>
+
+          <!-- NOMBRE -->
+
+          <label for="nombreCuidado">
+
+            Nombre o descripción
+
+            <input
+              id="nombreCuidado"
+              type="text"
+              maxlength="120"
+              placeholder="Ej. Medicamento de la mañana"
+              required
+            >
+
+          </label>
+
+          <!-- INDICACIONES -->
+
+          <label for="detalleCuidado">
+
+            Dosis o indicaciones
+
+            <input
+              id="detalleCuidado"
+              type="text"
+              maxlength="250"
+              placeholder="Ej. 1 tableta"
+            >
+
+          </label>
+
+          <!-- FECHA DE INICIO -->
+
+          <label for="fechaCuidado">
+
+            Fecha de inicio
+
+            <input
+              id="fechaCuidado"
+              type="date"
+              required
+            >
+
+          </label>
+
+          <!--
+            HORA
+
+            Este campo tendrá una columna
+            más estrecha mediante CSS.
+          -->
+
+          <label for="horaCuidado">
+
+            Hora
+
+            <input
+              id="horaCuidado"
+              type="time"
+              required
+            >
+
+          </label>
+
+          <!--
+            REPETICIÓN
+
+            CORRECCIÓN PRINCIPAL:
+
+            El select ahora está DENTRO
+            del mismo label.
+
+            De esta manera ambos ocupan
+            una sola celda del formulario.
+          -->
+
+          <label for="repeticionCuidado">
+
+            Repetición
+
+            <select id="repeticionCuidado" required>
+
+              <option value="" disabled selected>
+                Selecciona una frecuencia
+              </option>
+
+              <option value="unica">
+                Una sola vez
+              </option>
+
+              <option value="diaria">
+                Todos los días
+              </option>
+
+              <option value="semanal">
+                Una vez por semana
+              </option>
+
+              <option value="mensual">
+                Una vez por mes
+              </option>
+
+              <option value="personalizado-dias">
+                Personalizado: intervalo de días
+              </option>
+
+              <option value="personalizado-semanas">
+                Personalizado: intervalo de semanas
+              </option>
+
+              <option value="personalizado-meses">
+                Personalizado: intervalo de meses
+              </option>
+
+            </select>
+
+          </label>
+
+          <!-- ==================================
+               DÍAS DE LA SEMANA
+          =================================== -->
+
+          <div
+            id="opcionesSemana"
+            class="repeat-panel repeat-extra"
+            hidden
+          >
+
+            <h4>
+              Selecciona los días de la semana
+            </h4>
+
+            <div class="repeat-days">
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="1">
+                Lunes
+              </label>
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="2">
+                Martes
+              </label>
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="3">
+                Miércoles
+              </label>
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="4">
+                Jueves
+              </label>
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="5">
+                Viernes
+              </label>
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="6">
+                Sábado
+              </label>
+
+              <label>
+                <input type="checkbox"
+                       name="diasSemana" value="0">
+                Domingo
+              </label>
+
+            </div>
+
+          </div>
+
+          <!-- ==================================
+               DÍAS DEL MES
+          =================================== -->
+
+          <div
+            id="opcionesMes"
+            class="repeat-panel repeat-extra"
+            hidden
+          >
+
+            <h4>
+              Selecciona los días del mes
+            </h4>
+
+            <!-- Se genera desde JavaScript -->
+
+            <div
+              id="diasMesContenedor"
+              class="repeat-days repeat-month"
+            ></div>
+
+            <p class="muted">
+              Los días 29, 30 y 31 se omiten en
+              los meses que no los tengan.
+            </p>
+
+          </div>
+
+          <!-- ==================================
+               INTERVALO PERSONALIZADO
+          =================================== -->
+
+          <div
+            id="opcionesIntervalo"
+            class="repeat-panel repeat-extra"
+            hidden
+          >
+
+            <h4>
+              Intervalo personalizado
+            </h4>
+
+            <label for="intervaloCuidado">
+
+              Repetir cada
+
+              <input
+                id="intervaloCuidado"
+                type="number"
+                min="1"
+                max="365"
+                value="1"
+              >
+
+            </label>
+
+            <p>
+              Unidad:
+              <strong id="intervaloUnidad">
+                días
+              </strong>
+            </p>
+
+          </div>
+
+          <!-- ==================================
+               FINALIZACIÓN DE REPETICIÓN
+          =================================== -->
+
+          <div
+            id="finRepeticionContenedor"
+            class="repeat-extra"
+            hidden
+          >
+
+            <label for="fechaFinCuidado">
+
+              Finalizar repetición (opcional)
+
+              <input
+                id="fechaFinCuidado"
+                type="date"
+              >
+
+            </label>
+
+          </div>
+
+          <!-- GUARDAR RECORDATORIO -->
+
+          <button
+            class="primary"
+            type="submit"
+          >
+            Guardar recordatorio
+          </button>
+
+        </form>
+
+        <!-- LISTADO DE RECORDATORIOS -->
+
+        <h3>Recordatorios programados</h3>
+
+        <div
+          id="listaCuidados"
+          class="care-list"
+        >
+          Inicia sesión para consultar la agenda.
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================
+         8. RESPONSABLES
+    ======================================= -->
+
+    <section id="responsables" class="view">
+
+      <div class="panel">
+
+        <h2>
+          Familiares, médicos y cuidadores
+        </h2>
+
+        <p class="muted">
+          Registra a las personas responsables del cuidado.
+          Las notificaciones se consultan dentro de GeoCuidado.
+        </p>
+
+        <form
+          id="formResponsable"
+          class="care-form"
+        >
+
+          <!-- Nombre -->
+
+          <label for="nombreResponsable">
+
+            Nombre
+
+            <input
+              id="nombreResponsable"
+              type="text"
+              maxlength="100"
+              required
+            >
+
+          </label>
+
+          <!-- Relación -->
+
+          <label for="tipoResponsable">
+
+            Relación
+
+            <select id="tipoResponsable" required>
+
+              <option value="Familiar">
+                Familiar
+              </option>
+
+              <option value="Médico">
+                Médico
+              </option>
+
+              <option value="Cuidador">
+                Cuidador
+              </option>
+
+            </select>
+
+          </label>
+
+          <!-- TELÉFONO: obligatorio, solo números, 8 dígitos -->
+          <label for="telefonoResponsable">
+            Número de celular
+            <input
+              id="telefonoResponsable"
+              type="tel"
+              inputmode="numeric"
+              pattern="[0-9]{8}"
+              minlength="8"
+              maxlength="8"
+              autocomplete="tel-national"
+              placeholder="Ej. 71234567"
+              title="Ingresa exactamente 8 dígitos numéricos"
+              required
+            >
+          </label>
+
+          <!-- Autorización WhatsApp -->
+
+          <label class="consentimiento-whatsapp">
+
+            <input
+              id="whatsappAutorizado"
+              type="checkbox"
+            >
+
+            <span>
+              Confirmo que este responsable aceptó recibir
+              avisos de GeoCuidado por WhatsApp.
+            </span>
+
+          </label>
+
+          <!-- Agregar responsable -->
+
+          <button class="primary" type="submit">
+            Agregar responsable
+          </button>
+
+        </form>
+
+        <h3>Contactos registrados</h3>
+
+        <div
+          id="listaResponsables"
+          class="care-list"
+        >
+          Inicia sesión para consultar los contactos.
+        </div>
+
+        <h3>Avisos del sistema</h3>
+
+        <div
+          id="avisosPendientes"
+          class="care-list"
+        >
+          Sin avisos registrados.
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ======================================
+         9. AJUSTES
+    ======================================= -->
+
+    <section id="ajustes" class="view">
+
+      <div class="panel">
+
+        <h2>Configuración</h2>
+
+        <p>
+          Dispositivo:
+          <strong>gps001</strong>
+        </p>
+
+        <p>
+          Base de datos: Firebase Realtime Database
+        </p>
+
+        <p>
+          Mapa: Leaflet / Esri
+        </p>
+
+        <button
+          id="actualizarDatos"
+          class="primary"
+          type="button"
+        >
+          Actualizar datos
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- Mensajes generales -->
+
+    <p id="mensaje" class="mensaje"></p>
+
+  </main>
+
 </div>
 
-<!-- NOTIFICACIONES EMERGENTES -->
-<div id="notificationToastContainer"
-  class="notification-toast-container"
-  aria-live="polite"></div>
+<!-- ==========================================
+     10. NOTIFICACIONES EMERGENTES
+========================================== -->
 
-<!-- LIBRERÍA DEL MAPA -->
+<div
+  id="notificationToastContainer"
+  class="notification-toast-container"
+  aria-live="polite"
+></div>
+
+<!-- ==========================================
+     11. LIBRERÍAS
+========================================== -->
+
+<!-- Leaflet -->
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- GENERAR DÍAS DEL MES -->
+<!-- ==========================================
+     12. GENERAR DÍAS DEL MES
+========================================== -->
+
 <script>
-const diasMesContenedor =
-  document.getElementById("diasMesContenedor");
 
-for (let dia = 1; dia <= 31; dia++) {
-  const etiqueta = document.createElement("label");
-  const casilla = document.createElement("input");
+  // Obtener contenedor de días del mes
+  const diasMesContenedor =
+    document.getElementById("diasMesContenedor");
 
-  casilla.type = "checkbox";
-  casilla.name = "diasMes";
-  casilla.value = String(dia);
+  // Generar casillas desde el día 1 hasta el 31
+  for (let dia = 1; dia <= 31; dia++) {
 
-  etiqueta.appendChild(casilla);
-  etiqueta.appendChild(
-    document.createTextNode(" " + dia)
-  );
+    const etiqueta = document.createElement("label");
+    const casilla = document.createElement("input");
 
-  diasMesContenedor.appendChild(etiqueta);
-}
+    casilla.type = "checkbox";
+    casilla.name = "diasMes";
+    casilla.value = String(dia);
+
+    etiqueta.appendChild(casilla);
+
+    etiqueta.appendChild(
+      document.createTextNode(" " + dia)
+    );
+
+    diasMesContenedor.appendChild(etiqueta);
+  }
+
 </script>
 
-<!-- ARCHIVOS DE LA APLICACIÓN -->
+<!-- ==========================================
+     13. ARCHIVOS JAVASCRIPT ORIGINALES
+========================================== -->
+
+<!-- Funciones generales, Firebase y GPS -->
 <script src="js/app.js"></script>
+
+<!-- Funciones de agenda y responsables -->
 <script src="js/cuidados.js"></script>
 
 </body>

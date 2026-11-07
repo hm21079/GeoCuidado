@@ -1,0 +1,4 @@
+SERVIDOR LOCAL DE WHATSAPP (SIN BLAZE)
+
+Abre servidor-whatsapp/INSTRUCCIONES.md para instalar y probar.
+No necesitas desplegar Firebase Functions.

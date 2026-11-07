@@ -1,0 +1,13 @@
+{
+  "name": "geocuidado-whatsapp-local",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor local para alertas GeoCuidado sin Firebase Blaze",
+  "scripts": {
+    "start": "node server.js",
+    "test:whatsapp": "node server.js --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

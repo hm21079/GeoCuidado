@@ -1,13 +1,27 @@
-
 "use strict";
 
 /*
-  GEOCUIDADO
-  Agenda, repeticiones y notificaciones internas.
-  Compatible con app.js y Firebase Realtime Database.
+==================================================
+GEOCUIDADO - CUIDADOS Y NOTIFICACIONES
+==================================================
+Funciones:
+- Agenda de medicamentos y actividades
+- Repeticiones programadas
+- Responsables y teléfonos
+- Notificaciones internas
+- Avisos y alertas de perímetro
+- Integración con Firebase Realtime Database
+- Compatible con Leaflet + Esri
+
+Requiere que js/app.js se cargue primero.
+==================================================
 */
 
 (() => {
+  // ==========================================
+  // 1. VARIABLES GENERALES
+  // ==========================================
+
   const el = id => document.getElementById(id);
 
   let cuidados = {};
@@ -17,64 +31,98 @@
 
   let reloj = null;
   let sincronizador = null;
+
   let cargando = false;
   let revisando = false;
   let sincronizando = false;
+
   let sesion = 0;
   let notificacionesCargadas = false;
 
-  // ========================================
-  // UTILIDADES
-  // ========================================
+  // ==========================================
+  // 2. UTILIDADES
+  // ==========================================
 
-  const esc = valor =>
-    String(valor ?? "").replace(/[&<>"']/g, c => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    }[c]));
+  // Escapar texto para evitar HTML no deseado.
+  function esc(valor) {
+    return String(valor ?? "").replace(
+      /[&<>"']/g,
+      c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[c])
+    );
+  }
 
-  const fechaLocal = d =>
-    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  // Fecha local YYYY-MM-DD.
+  function fechaLocal(d) {
+    return [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0")
+    ].join("-");
+  }
 
-  const horaLocal = d =>
-    `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  // Hora local HH:MM.
+  function horaLocal(d) {
+    return (
+      String(d.getHours()).padStart(2, "0") +
+      ":" +
+      String(d.getMinutes()).padStart(2, "0")
+    );
+  }
 
   function fechaUTC(s) {
-    const [y,m,d] = s.split("-").map(Number);
-    return Date.UTC(y,m-1,d);
+    const [y, m, d] = s.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
   }
 
   function fechaValida(s) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) {
+      return false;
+    }
 
     const t = fechaUTC(s);
 
     return Number.isFinite(t) &&
-      new Date(t).toISOString().slice(0,10) === s;
+      new Date(t).toISOString().slice(0, 10) === s;
   }
 
-  const diasEntre = (a,b) =>
-    Math.round((fechaUTC(b)-fechaUTC(a))/86400000);
+  function diasEntre(a, b) {
+    return Math.round(
+      (fechaUTC(b) - fechaUTC(a)) / 86400000
+    );
+  }
 
-  const fechaBonita = s =>
-    s ? s.split("-").reverse().join("/") : "Todos los días";
+  function fechaBonita(s) {
+    return s
+      ? s.split("-").reverse().join("/")
+      : "Todos los días";
+  }
 
   const nombresSemana = [
-    "Dom","Lun","Mar","Mié","Jue","Vie","Sáb"
+    "Dom", "Lun", "Mar", "Mié",
+    "Jue", "Vie", "Sáb"
   ];
 
   function configurarFecha() {
     if (!el("fechaCuidado").value) {
-      el("fechaCuidado").value = fechaLocal(new Date());
+      el("fechaCuidado").value =
+        fechaLocal(new Date());
     }
   }
 
-  // ========================================
-  // REPETICIONES
-  // ========================================
+  function informar(error) {
+    console.error(error);
+    mostrarMensaje(error.message || String(error));
+  }
+
+  // ==========================================
+  // 3. OPCIONES DE REPETICIÓN
+  // ==========================================
 
   function mostrarOpciones() {
     const r = el("repeticionCuidado").value;
@@ -83,18 +131,21 @@
       r !== "semanal" &&
       r !== "personalizado-semanas";
 
-    el("opcionesMes").hidden = r !== "mensual";
+    el("opcionesMes").hidden =
+      r !== "mensual";
 
     el("opcionesIntervalo").hidden =
       !r.startsWith("personalizado-");
 
     el("finRepeticionContenedor").hidden =
-      r === "unica";
+      !r || r === "unica";
 
     el("intervaloUnidad").textContent =
-      r === "personalizado-dias" ? "días" :
-      r === "personalizado-semanas" ? "semanas" :
-      "meses";
+      r === "personalizado-dias"
+        ? "días"
+        : r === "personalizado-semanas"
+          ? "semanas"
+          : "meses";
   }
 
   function inicioSemana(fecha) {
@@ -102,59 +153,71 @@
     const dia = new Date(t).getUTCDay();
 
     return new Date(
-      t - ((dia+6)%7)*86400000
-    ).toISOString().slice(0,10);
+      t - ((dia + 6) % 7) * 86400000
+    ).toISOString().slice(0, 10);
   }
 
-  function coincideFecha(c,hoy) {
-    // Compatibilidad con registros anteriores.
+  // Verificar si un recordatorio corresponde
+  // a la fecha actual.
+  function coincideFecha(c, hoy) {
     if (!c.fecha) return true;
 
     if (
       hoy < c.fecha ||
       (c.fechaFin && hoy > c.fechaFin)
-    ) return false;
+    ) {
+      return false;
+    }
 
-    const r = c.repeticion || "unica";
+    const r = c.repeticion || "diaria";
 
-    if (r === "unica") return hoy === c.fecha;
-    if (r === "diaria") return true;
+    if (r === "unica") {
+      return hoy === c.fecha;
+    }
+
+    if (r === "diaria") {
+      return true;
+    }
 
     const diaSemana =
       new Date(fechaUTC(hoy)).getUTCDay();
 
     if (r === "semanal") {
-      return (c.diasSemana || []).includes(diaSemana);
+      return (c.diasSemana || [])
+        .includes(diaSemana);
     }
 
     if (r === "mensual") {
-      return (c.diasMes || []).includes(
-        Number(hoy.slice(8))
-      );
+      return (c.diasMes || [])
+        .includes(Number(hoy.slice(8)));
     }
 
     const n = Number(c.intervalo) || 1;
 
     if (r === "personalizado-dias") {
-      return diasEntre(c.fecha,hoy)%n === 0;
+      return diasEntre(c.fecha, hoy) % n === 0;
     }
 
     if (r === "personalizado-semanas") {
       const semanas = diasEntre(
         inicioSemana(c.fecha),
         inicioSemana(hoy)
-      )/7;
+      ) / 7;
 
-      return semanas%n === 0 &&
+      return semanas % n === 0 &&
         (c.diasSemana || []).includes(diaSemana);
     }
 
     if (r === "personalizado-meses") {
-      const [ya,ma,da] = c.fecha.split("-").map(Number);
-      const [yb,mb,db] = hoy.split("-").map(Number);
-      const meses = (yb-ya)*12+(mb-ma);
+      const [ya, ma, da] =
+        c.fecha.split("-").map(Number);
 
-      return meses%n === 0 && db === da;
+      const [yb, mb, db] =
+        hoy.split("-").map(Number);
+
+      const meses = (yb - ya) * 12 + (mb - ma);
+
+      return meses % n === 0 && db === da;
     }
 
     return false;
@@ -163,14 +226,18 @@
   function descripcionRepeticion(c) {
     const r = c.repeticion;
 
-    if (!r) return "Todos los días (registro anterior)";
+    if (!r) {
+      return "Todos los días (registro anterior)";
+    }
+
     if (r === "unica") return "Una sola vez";
     if (r === "diaria") return "Todos los días";
 
     if (r === "semanal") {
       return "Semanal: " +
         (c.diasSemana || [])
-          .map(d => nombresSemana[d]).join(", ");
+          .map(d => nombresSemana[d])
+          .join(", ");
     }
 
     if (r === "mensual") {
@@ -185,87 +252,118 @@
     if (r === "personalizado-semanas") {
       return `Cada ${c.intervalo} semana(s): ` +
         (c.diasSemana || [])
-          .map(d => nombresSemana[d]).join(", ");
+          .map(d => nombresSemana[d])
+          .join(", ");
     }
 
     if (r === "personalizado-meses") {
-      return `Cada ${c.intervalo} mes(es), día ${Number(c.fecha.slice(8))}`;
+      return `Cada ${c.intervalo} mes(es), día ${
+        Number(c.fecha.slice(8))
+      }`;
     }
 
     return "Sin definir";
   }
 
-  // ========================================
-  // NAVEGACIÓN
-  // ========================================
+  // ==========================================
+  // 4. NAVEGACIÓN
+  // ==========================================
 
   function abrirSeccion(id) {
-    document.querySelectorAll(".nav").forEach(b => {
-      b.classList.toggle(
-        "active",
-        b.dataset.view === id
-      );
-    });
+    document.querySelectorAll(".nav")
+      .forEach(b => {
+        b.classList.toggle(
+          "active",
+          b.dataset.view === id
+        );
+      });
 
-    document.querySelectorAll(".view").forEach(v => {
-      v.classList.toggle("active",v.id === id);
-    });
+    document.querySelectorAll(".view")
+      .forEach(v => {
+        v.classList.toggle(
+          "active",
+          v.id === id
+        );
+      });
 
     el("notificationDropdown").hidden = true;
 
     el("notificationBell").setAttribute(
-      "aria-expanded","false"
+      "aria-expanded",
+      "false"
     );
 
-    if (id === "inicio" && typeof mapa !== "undefined" && mapa) {
-      setTimeout(() => mapa.invalidateSize(),150);
+    // Corregir tamaño del mapa Leaflet.
+    if (
+      id === "inicio" &&
+      typeof mapa !== "undefined" &&
+      mapa
+    ) {
+      setTimeout(() => {
+        mapa.invalidateSize();
+      }, 150);
     }
   }
 
-  // ========================================
-  // NOTIFICACIONES INTERNAS
-  // ========================================
+  // ==========================================
+  // 5. NOTIFICACIONES
+  // ==========================================
 
   function tituloTipo(tipo) {
     return {
-      medicamento:"💊 Medicamento",
-      aseo:"🧼 Aseo personal",
-      caminata:"🚶 Salida a caminar",
-      otro:"📅 Actividad programada",
-      perimetro:"🚨 Alerta de seguridad",
-      regreso:"✅ Regreso a zona segura"
+      medicamento: "💊 Medicamento",
+      aseo: "🧼 Aseo personal",
+      caminata: "🚶 Salida a caminar",
+      otro: "📅 Actividad programada",
+      perimetro: "🚨 Alerta de seguridad",
+      regreso: "✅ Regreso a zona segura"
     }[tipo] || "🔔 GeoCuidado";
   }
 
   function listaOrdenada() {
-    return Object.entries(notificaciones).sort(
-      (a,b) =>
-        String(b[1].fecha || "").localeCompare(
-          String(a[1].fecha || "")
+    return Object.entries(notificaciones)
+      .sort((a, b) =>
+        String(b[1]?.fecha || "").localeCompare(
+          String(a[1]?.fecha || "")
         )
-    );
+      );
   }
 
-  function tarjetaNotificacion(id,n) {
+  function tarjetaNotificacion(id, n) {
     const fecha = n.fecha
       ? new Date(n.fecha).toLocaleString("es-SV")
       : "Sin fecha";
 
     return `
-      <div class="notification-entry ${n.leida ? "" : "unread"}">
-        <strong>${esc(n.titulo || tituloTipo(n.tipo))}</strong>
+      <div class="notification-entry ${
+        n.leida ? "" : "unread"
+      }">
+        <strong>
+          ${esc(n.titulo || tituloTipo(n.tipo))}
+        </strong>
+
         <p>${esc(n.mensaje)}</p>
+
         <span class="notification-date">
           ${esc(fecha)}
         </span>
+
         <div class="notification-actions">
-          ${!n.leida ? `
-            <button data-leer-notificacion="${esc(id)}">
-              Marcar como leída
-            </button>
-          ` : `
-            <span class="notification-date">✓ Leída</span>
-          `}
+          ${
+            !n.leida
+              ? `
+                <button
+                  data-leer-notificacion="${esc(id)}"
+                  type="button">
+                  Marcar como leída
+                </button>
+              `
+              : `
+                <span class="notification-date">
+                  ✓ Leída
+                </span>
+              `
+          }
         </div>
       </div>
     `;
@@ -275,72 +373,100 @@
     const lista = listaOrdenada();
 
     const pendientes = lista.filter(
-      ([,n]) => !n.leida
+      ([, n]) => !n.leida
     ).length;
 
     const contador = el("notificationCount");
 
     contador.textContent =
-      pendientes > 99 ? "99+" : String(pendientes);
+      pendientes > 99
+        ? "99+"
+        : String(pendientes);
 
     contador.hidden = pendientes === 0;
 
-    el("notificationPreview").innerHTML = lista.length
-      ? lista.slice(0,5).map(
-          ([id,n]) => tarjetaNotificacion(id,n)
-        ).join("")
-      : '<p class="notification-empty">Sin notificaciones.</p>';
+    el("notificationPreview").innerHTML =
+      lista.length
+        ? lista.slice(0, 5)
+            .map(([id, n]) =>
+              tarjetaNotificacion(id, n)
+            ).join("")
+        : `
+          <p class="notification-empty">
+            Sin notificaciones.
+          </p>
+        `;
 
-    el("notificationList").innerHTML = lista.length
-      ? lista.map(
-          ([id,n]) => tarjetaNotificacion(id,n)
-        ).join("")
-      : '<p class="notification-empty">No hay notificaciones registradas.</p>';
+    el("notificationList").innerHTML =
+      lista.length
+        ? lista.map(([id, n]) =>
+            tarjetaNotificacion(id, n)
+          ).join("")
+        : `
+          <p class="notification-empty">
+            No hay notificaciones registradas.
+          </p>
+        `;
   }
 
-  function mostrarToast(titulo,mensaje,tipo) {
+  // Notificación emergente.
+  function mostrarToast(titulo, mensaje, tipo) {
     const contenedor =
       el("notificationToastContainer");
 
     const caja = document.createElement("div");
 
-    caja.className = "notification-toast " +
-      (tipo === "perimetro" ? "warning" :
-       tipo === "regreso" ? "success" : "");
+    caja.className =
+      "notification-toast " +
+      (
+        tipo === "perimetro"
+          ? "warning"
+          : tipo === "regreso"
+            ? "success"
+            : ""
+      );
 
-    const encabezado = document.createElement("strong");
+    const encabezado =
+      document.createElement("strong");
+
     encabezado.textContent = titulo;
 
     const parrafo = document.createElement("p");
     parrafo.textContent = mensaje;
 
     const boton = document.createElement("button");
+    boton.type = "button";
     boton.textContent = "Ver notificaciones";
 
-    boton.addEventListener("click",() => {
+    boton.addEventListener("click", () => {
       abrirSeccion("alertas");
       caja.remove();
     });
 
-    caja.append(encabezado,parrafo,boton);
+    caja.append(encabezado, parrafo, boton);
     contenedor.prepend(caja);
 
     while (contenedor.children.length > 4) {
       contenedor.lastElementChild.remove();
     }
 
-    setTimeout(() => caja.remove(),10000);
+    setTimeout(() => caja.remove(), 10000);
   }
 
-  async function crearNotificacion(tipo,mensaje,mostrar = true) {
+  // Guardar notificación en Firebase.
+  async function crearNotificacion(
+    tipo,
+    mensaje,
+    mostrar = true
+  ) {
     if (!idToken) return;
 
     const registro = {
       tipo,
-      titulo:tituloTipo(tipo),
+      titulo: tituloTipo(tipo),
       mensaje,
-      fecha:new Date().toISOString(),
-      leida:false
+      fecha: new Date().toISOString(),
+      leida: false
     };
 
     const r = await firebaseRequest(
@@ -350,6 +476,7 @@
     );
 
     notificaciones[r.name] = registro;
+
     pintarNotificaciones();
 
     if (mostrar) {
@@ -373,18 +500,18 @@
     );
 
     notificaciones[id].leida = true;
+
     pintarNotificaciones();
   }
 
   async function marcarTodas() {
-    const pendientes = listaOrdenada().filter(
-      ([,n]) => !n.leida
-    );
+    const pendientes = listaOrdenada()
+      .filter(([, n]) => !n.leida);
 
     for (const [id] of pendientes) {
       try {
         await marcarLeida(id);
-      } catch(error) {
+      } catch (error) {
         console.error(
           "Error al marcar notificación:",
           error
@@ -393,10 +520,12 @@
     }
   }
 
+  // Sincronizar notificaciones desde Firebase.
   async function actualizarNotificaciones() {
     if (!idToken || sincronizando) return;
 
     sincronizando = true;
+
     const actual = sesion;
 
     try {
@@ -413,22 +542,27 @@
       const nuevos = datos || {};
 
       if (notificacionesCargadas) {
-        Object.entries(nuevos).forEach(([id,n]) => {
-          if (!anteriores.has(id) && !n.leida) {
-            mostrarToast(
-              n.titulo || tituloTipo(n.tipo),
-              n.mensaje,
-              n.tipo
-            );
-          }
-        });
+        Object.entries(nuevos)
+          .forEach(([id, n]) => {
+            if (
+              !anteriores.has(id) &&
+              !n.leida
+            ) {
+              mostrarToast(
+                n.titulo || tituloTipo(n.tipo),
+                n.mensaje,
+                n.tipo
+              );
+            }
+          });
       }
 
       notificaciones = nuevos;
       notificacionesCargadas = true;
+
       pintarNotificaciones();
 
-    } catch(error) {
+    } catch (error) {
       console.error(
         "Error al actualizar notificaciones:",
         error
@@ -438,121 +572,150 @@
     }
   }
 
-  // ========================================
-  // MOSTRAR CUIDADOS
-  // ========================================
+  // ==========================================
+  // 6. MOSTRAR AGENDA DE CUIDADOS
+  // ==========================================
 
   function pintarCuidados() {
-    const lista = Object.entries(cuidados).sort(
-      (a,b) =>
-        (a[1].fecha || "").localeCompare(
-          b[1].fecha || ""
+    const lista = Object.entries(cuidados)
+      .sort((a, b) =>
+        String(a[1].fecha || "").localeCompare(
+          String(b[1].fecha || "")
         ) ||
-        a[1].hora.localeCompare(b[1].hora)
-    );
+        String(a[1].hora || "").localeCompare(
+          String(b[1].hora || "")
+        )
+      );
 
-    el("listaCuidados").innerHTML = lista.length
-      ? lista.map(([id,c]) => `
-        <div class="care-item">
-          <strong>
-            ${esc(c.tipo)}: ${esc(c.nombre)}
-          </strong>
+    el("listaCuidados").innerHTML =
+      lista.length
+        ? lista.map(([id, c]) => `
+          <div class="care-item">
+            <strong>
+              ${esc(c.tipo)}: ${esc(c.nombre)}
+            </strong>
 
-          <p>
-            <b>Inicio:</b>
-            ${esc(fechaBonita(c.fecha))}
-            · <b>Hora:</b> ${esc(c.hora)}
-          </p>
-
-          <p>
-            <b>Indicaciones:</b>
-            ${esc(c.detalle || "Sin indicaciones")}
-          </p>
-
-          <p>
-            <b>Repetición:</b>
-            ${esc(descripcionRepeticion(c))}
-          </p>
-
-          ${c.fechaFin ? `
             <p>
-              <b>Hasta:</b>
-              ${esc(fechaBonita(c.fechaFin))}
+              <b>Inicio:</b>
+              ${esc(fechaBonita(c.fecha))}
+              ·
+              <b>Hora:</b> ${esc(c.hora)}
             </p>
-          ` : ""}
 
-          <div class="care-actions">
-            <button
-              data-borrar-cuidado="${esc(id)}"
-              class="delete">
-              Eliminar
-            </button>
+            <p>
+              <b>Indicaciones:</b>
+              ${esc(c.detalle || "Sin indicaciones")}
+            </p>
+
+            <p>
+              <b>Repetición:</b>
+              ${esc(descripcionRepeticion(c))}
+            </p>
+
+            ${
+              c.fechaFin
+                ? `
+                  <p>
+                    <b>Hasta:</b>
+                    ${esc(fechaBonita(c.fechaFin))}
+                  </p>
+                `
+                : ""
+            }
+
+            <div class="care-actions">
+              <button
+                type="button"
+                data-borrar-cuidado="${esc(id)}"
+                class="delete">
+                Eliminar
+              </button>
+            </div>
           </div>
-        </div>
-      `).join("")
-      : "<p>No hay recordatorios programados.</p>";
+        `).join("")
+        : "<p>No hay recordatorios programados.</p>";
   }
 
-  // ========================================
-  // RESPONSABLES
-  // ========================================
+  // ==========================================
+  // 7. MOSTRAR RESPONSABLES
+  // ==========================================
 
   function pintarResponsables() {
     const lista = Object.entries(responsables);
 
-    el("listaResponsables").innerHTML = lista.length
-      ? lista.map(([id,r]) => `
-        <div class="care-item">
-          <strong>
-            ${esc(r.nombre)} · ${esc(r.tipo)}
-          </strong>
+    el("listaResponsables").innerHTML =
+      lista.length
+        ? lista.map(([id, r]) => `
+          <div class="care-item">
+            <strong>
+              ${esc(r.nombre)} · ${esc(r.tipo)}
+            </strong>
 
-          <p>${esc(r.correo || "")}</p>
-          <p>${esc(r.telefono || "")}</p>
+            <p>
+              <b>Celular:</b>
+              ${esc(r.telefono || "No registrado")}
+            </p>
 
-          <div class="care-actions">
-            <button
-              data-borrar-responsable="${esc(id)}"
-              class="delete">
-              Eliminar
-            </button>
+            <p>
+              ${
+                r.whatsappAutorizado === true
+                  ? "WhatsApp autorizado"
+                  : "WhatsApp no autorizado"
+              }
+            </p>
+
+            <div class="care-actions">
+              <button
+                type="button"
+                data-borrar-responsable="${esc(id)}"
+                class="delete">
+                Eliminar
+              </button>
+            </div>
           </div>
-        </div>
-      `).join("")
-      : "<p>No hay responsables registrados.</p>";
+        `).join("")
+        : "<p>No hay responsables registrados.</p>";
   }
 
-  // ========================================
-  // AVISOS
-  // ========================================
+  // ==========================================
+  // 8. AVISOS DEL SISTEMA
+  // ==========================================
 
   function pintarAvisos() {
-    const lista = Object.entries(avisos).sort(
-      (a,b) =>
+    const lista = Object.entries(avisos)
+      .sort((a, b) =>
         String(b[1].fecha || "").localeCompare(
           String(a[1].fecha || "")
         )
-    ).slice(0,40);
+      ).slice(0, 40);
 
-    el("avisosPendientes").innerHTML = lista.length
-      ? lista.map(([,a]) => `
-        <div class="care-item">
-          <strong>${esc(a.tipo)}</strong>
-          <p>${esc(a.mensaje)}</p>
-          <p>
-            ${esc(new Date(a.fecha).toLocaleString("es-SV"))}
-          </p>
-        </div>
-      `).join("")
-      : "<p>No hay avisos registrados.</p>";
+    el("avisosPendientes").innerHTML =
+      lista.length
+        ? lista.map(([, a]) => `
+          <div class="care-item">
+            <strong>${esc(a.tipo)}</strong>
+
+            <p>${esc(a.mensaje)}</p>
+
+            <p>
+              ${esc(
+                a.fecha
+                  ? new Date(a.fecha)
+                      .toLocaleString("es-SV")
+                  : "Sin fecha"
+              )}
+            </p>
+          </div>
+        `).join("")
+        : "<p>No hay avisos registrados.</p>";
   }
 
-  async function guardarAviso(tipo,mensaje) {
+  async function guardarAviso(tipo, mensaje) {
     const registro = {
       tipo,
       mensaje,
-      fecha:new Date().toISOString(),
-      estado:"Registrado en GeoCuidado"
+      fecha: new Date().toISOString(),
+      estado: "Registrado en GeoCuidado"
     };
 
     const r = await firebaseRequest(
@@ -562,12 +725,13 @@
     );
 
     avisos[r.name] = registro;
+
     pintarAvisos();
   }
 
-  // ========================================
-  // EJECUCIÓN DE RECORDATORIOS
-  // ========================================
+  // ==========================================
+  // 9. EJECUTAR RECORDATORIOS
+  // ==========================================
 
   async function revisarRecordatorios() {
     if (!idToken || revisando) return;
@@ -579,10 +743,14 @@
       const hoy = fechaLocal(ahora);
       const hora = horaLocal(ahora);
 
-      for (const [id,c] of Object.entries(cuidados)) {
+      for (const [id, c] of Object.entries(cuidados)) {
+        // Comprobar hora.
         if (c.hora !== hora) continue;
-        if (!coincideFecha(c,hoy)) continue;
 
+        // Comprobar repetición.
+        if (!coincideFecha(c, hoy)) continue;
+
+        // Ruta de ejecución del recordatorio.
         const ruta =
           BASE + "/ejecuciones/" + id + "/" + hoy;
 
@@ -594,32 +762,38 @@
             ruta + ".json?auth=" +
             encodeURIComponent(token);
 
-          // Evita duplicar el mismo recordatorio.
-          const lectura = await fetch(url,{
-            headers:{
-              "X-Firebase-ETag":"true"
+          // Solicitar ETag para evitar duplicados.
+          const lectura = await fetch(url, {
+            headers: {
+              "X-Firebase-ETag": "true"
             }
           });
 
           if (!lectura.ok) {
-            throw Error("No se pudo consultar la ejecución");
+            throw Error(
+              "No se pudo consultar la ejecución"
+            );
           }
 
           const valor = await lectura.json();
 
+          // Ya se ejecutó hoy.
           if (valor !== null) continue;
 
-          const etag = lectura.headers.get("ETag");
+          const etag =
+            lectura.headers.get("ETag");
+
           if (!etag) continue;
 
-          const escritura = await fetch(url,{
-            method:"PUT",
-            headers:{
-              "Content-Type":"application/json",
-              "if-match":etag
+          // Registrar la ejecución una sola vez.
+          const escritura = await fetch(url, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "if-match": etag
             },
-            body:JSON.stringify({
-              fecha:ahora.toISOString()
+            body: JSON.stringify({
+              fecha: ahora.toISOString()
             })
           });
 
@@ -627,46 +801,55 @@
 
           const texto =
             `${c.nombre}` +
-            (c.detalle ? " — " + c.detalle : "");
+            (
+              c.detalle
+                ? " — " + c.detalle
+                : ""
+            );
 
+          // Crear notificación.
           await crearNotificacion(
             c.tipo,
             texto,
             true
           );
 
-          registrarAlerta("Recordatorio: " + texto);
+          // Registrar en historial GPS.
+          registrarAlerta(
+            "Recordatorio: " + texto
+          );
 
+          // Registrar aviso en Firebase.
           await guardarAviso(
             "Recordatorio de " + c.tipo,
             texto
           );
 
-        } catch(error) {
+        } catch (error) {
           console.error(
             "Error de recordatorio:",
             error
           );
         }
       }
-
     } finally {
       revisando = false;
     }
   }
 
-  // ========================================
-  // CARGAR FIREBASE
-  // ========================================
+  // ==========================================
+  // 10. CARGAR DATOS DE FIREBASE
+  // ==========================================
 
   async function cargar() {
     if (cargando || !idToken) return;
 
     cargando = true;
+
     const actual = sesion;
 
     try {
-      const [c,r,a,n] = await Promise.all([
+      const [c, r, a, n] = await Promise.all([
         firebaseRequest(BASE + "/cuidados"),
         firebaseRequest(BASE + "/responsables"),
         firebaseRequest(BASE + "/avisos"),
@@ -689,6 +872,7 @@
 
       configurarFecha();
 
+      // Revisar recordatorios cada 15 segundos.
       if (!reloj) {
         reloj = setInterval(
           revisarRecordatorios,
@@ -696,6 +880,7 @@
         );
       }
 
+      // Sincronizar notificaciones.
       if (!sincronizador) {
         sincronizador = setInterval(
           actualizarNotificaciones,
@@ -705,7 +890,7 @@
 
       await revisarRecordatorios();
 
-    } catch(error) {
+    } catch (error) {
       mostrarMensaje(
         "Error al cargar cuidados: " +
         error.message
@@ -715,9 +900,9 @@
     }
   }
 
-  // ========================================
-  // GUARDAR RECORDATORIO
-  // ========================================
+  // ==========================================
+  // 11. GUARDAR RECORDATORIOS
+  // ==========================================
 
   el("formCuidado").addEventListener(
     "submit",
@@ -725,31 +910,42 @@
       e.preventDefault();
 
       try {
-        const rep = el("repeticionCuidado").value;
+        const rep =
+          el("repeticionCuidado").value;
 
         const dato = {
-          tipo:el("tipoCuidado").value,
-          nombre:el("nombreCuidado").value.trim(),
-          detalle:el("detalleCuidado").value.trim(),
-          fecha:el("fechaCuidado").value,
-          hora:el("horaCuidado").value,
-          repeticion:rep,
-          fechaFin:rep === "unica"
+          tipo: el("tipoCuidado").value,
+          nombre: el("nombreCuidado").value.trim(),
+          detalle: el("detalleCuidado").value.trim(),
+          fecha: el("fechaCuidado").value,
+          hora: el("horaCuidado").value,
+          repeticion: rep,
+          fechaFin: rep === "unica"
             ? ""
             : el("fechaFinCuidado").value,
-          creado:new Date().toISOString()
+          creado: new Date().toISOString()
         };
 
+        // Validar campos principales.
         if (
           !dato.nombre ||
           !fechaValida(dato.fecha) ||
-          !/^([01]\d|2[0-3]):[0-5]\d$/.test(dato.hora)
+          !/^([01]\d|2[0-3]):[0-5]\d$/.test(
+            dato.hora
+          )
         ) {
           throw Error(
             "Completa nombre, fecha y hora válidos."
           );
         }
 
+        if (!rep) {
+          throw Error(
+            "Selecciona una frecuencia de repetición."
+          );
+        }
+
+        // Validar fecha de finalización.
         if (
           dato.fechaFin &&
           (
@@ -762,6 +958,7 @@
           );
         }
 
+        // Días de la semana.
         if (
           rep === "semanal" ||
           rep === "personalizado-semanas"
@@ -779,6 +976,7 @@
           }
         }
 
+        // Días del mes.
         if (rep === "mensual") {
           dato.diasMes = [
             ...document.querySelectorAll(
@@ -793,6 +991,7 @@
           }
         }
 
+        // Intervalos personalizados.
         if (rep.startsWith("personalizado-")) {
           dato.intervalo =
             Number(el("intervaloCuidado").value);
@@ -808,6 +1007,7 @@
           }
         }
 
+        // Guardar en Firebase.
         const r = await firebaseRequest(
           BASE + "/cuidados",
           "POST",
@@ -815,9 +1015,12 @@
         );
 
         cuidados[r.name] = dato;
+
         pintarCuidados();
 
+        // Limpiar formulario.
         e.target.reset();
+
         configurarFecha();
         mostrarOpciones();
 
@@ -825,15 +1028,15 @@
           "Recordatorio guardado correctamente."
         );
 
-      } catch(error) {
-        mostrarMensaje(error.message);
+      } catch (error) {
+        informar(error);
       }
     }
   );
 
-  // ========================================
-  // GUARDAR RESPONSABLE
-  // ========================================
+  // ==========================================
+  // 12. GUARDAR RESPONSABLES
+  // ==========================================
 
   el("formResponsable").addEventListener(
     "submit",
@@ -841,20 +1044,45 @@
       e.preventDefault();
 
       try {
+        // El formulario actual no utiliza correo.
         const dato = {
-          nombre:el("nombreResponsable").value.trim(),
-          tipo:el("tipoResponsable").value,
-          correo:el("correoResponsable").value.trim(),
-          telefono:el("telefonoResponsable").value.trim()
+          nombre:
+            el("nombreResponsable").value.trim(),
+
+          tipo:
+            el("tipoResponsable").value,
+
+          telefono:
+            el("telefonoResponsable").value.trim(),
+
+          whatsappAutorizado:
+            el("whatsappAutorizado").checked
         };
 
-        if (!dato.nombre ||
-            !el("correoResponsable").checkValidity()) {
+        if (!dato.nombre) {
           throw Error(
-            "Verifica el nombre y el correo."
+            "Ingresa el nombre del responsable."
           );
         }
 
+        // Validar relación.
+        if (
+          !["Familiar", "Médico", "Cuidador"]
+            .includes(dato.tipo)
+        ) {
+          throw Error(
+            "Selecciona una relación válida."
+          );
+        }
+
+        // Validar exactamente 8 dígitos.
+        if (!/^[0-9]{8}$/.test(dato.telefono)) {
+          throw Error(
+            "El número celular debe tener exactamente 8 dígitos."
+          );
+        }
+
+        // Guardar responsable en Firebase.
         const r = await firebaseRequest(
           BASE + "/responsables",
           "POST",
@@ -862,6 +1090,7 @@
         );
 
         responsables[r.name] = dato;
+
         pintarResponsables();
 
         e.target.reset();
@@ -870,15 +1099,15 @@
           "Responsable guardado correctamente."
         );
 
-      } catch(error) {
-        mostrarMensaje(error.message);
+      } catch (error) {
+        informar(error);
       }
     }
   );
 
-  // ========================================
-  // ELIMINAR RECORDATORIOS
-  // ========================================
+  // ==========================================
+  // 13. ELIMINAR RECORDATORIOS
+  // ==========================================
 
   el("listaCuidados").addEventListener(
     "click",
@@ -887,8 +1116,11 @@
         "[data-borrar-cuidado]"
       )?.dataset.borrarCuidado;
 
-      if (!id ||
-          !confirm("¿Eliminar recordatorio?")) return;
+      if (!id) return;
+
+      if (!confirm("¿Eliminar recordatorio?")) {
+        return;
+      }
 
       try {
         await firebaseRequest(
@@ -897,19 +1129,22 @@
         );
 
         delete cuidados[id];
+
         pintarCuidados();
 
-        mostrarMensaje("Recordatorio eliminado.");
+        mostrarMensaje(
+          "Recordatorio eliminado."
+        );
 
-      } catch(error) {
-        mostrarMensaje(error.message);
+      } catch (error) {
+        informar(error);
       }
     }
   );
 
-  // ========================================
-  // ELIMINAR RESPONSABLES
-  // ========================================
+  // ==========================================
+  // 14. ELIMINAR RESPONSABLES
+  // ==========================================
 
   el("listaResponsables").addEventListener(
     "click",
@@ -918,8 +1153,11 @@
         "[data-borrar-responsable]"
       )?.dataset.borrarResponsable;
 
-      if (!id ||
-          !confirm("¿Eliminar responsable?")) return;
+      if (!id) return;
+
+      if (!confirm("¿Eliminar responsable?")) {
+        return;
+      }
 
       try {
         await firebaseRequest(
@@ -928,24 +1166,29 @@
         );
 
         delete responsables[id];
+
         pintarResponsables();
 
-        mostrarMensaje("Responsable eliminado.");
+        mostrarMensaje(
+          "Responsable eliminado."
+        );
 
-      } catch(error) {
-        mostrarMensaje(error.message);
+      } catch (error) {
+        informar(error);
       }
     }
   );
 
-  // ========================================
-  // CONTROLES DE NOTIFICACIONES
-  // ========================================
+  // ==========================================
+  // 15. CONTROLES DE NOTIFICACIONES
+  // ==========================================
 
+  // Abrir o cerrar campana.
   el("notificationBell").addEventListener(
     "click",
     () => {
-      const panel = el("notificationDropdown");
+      const panel =
+        el("notificationDropdown");
 
       panel.hidden = !panel.hidden;
 
@@ -956,23 +1199,31 @@
     }
   );
 
+  // Mostrar centro de notificaciones.
   el("verTodasNotificaciones").addEventListener(
     "click",
     () => abrirSeccion("alertas")
   );
 
+  // Marcar todas como leídas.
   el("marcarTodasLeidas").addEventListener(
     "click",
     async () => {
-      await marcarTodas();
+      try {
+        await marcarTodas();
+      } catch (error) {
+        informar(error);
+      }
     }
   );
 
+  // Actualizar notificaciones manualmente.
   el("actualizarNotificaciones").addEventListener(
     "click",
     actualizarNotificaciones
   );
 
+  // Marcar una notificación como leída.
   async function clickNotificacion(e) {
     const id = e.target.closest(
       "[data-leer-notificacion]"
@@ -982,8 +1233,8 @@
 
     try {
       await marcarLeida(id);
-    } catch(error) {
-      mostrarMensaje(error.message);
+    } catch (error) {
+      informar(error);
     }
   }
 
@@ -997,8 +1248,13 @@
     clickNotificacion
   );
 
-  document.addEventListener("click",e => {
-    if (!e.target.closest(".notification-wrapper")) {
+  // Cerrar campana al hacer clic afuera.
+  document.addEventListener("click", e => {
+    if (
+      !e.target.closest(
+        ".notification-wrapper"
+      )
+    ) {
       el("notificationDropdown").hidden = true;
 
       el("notificationBell").setAttribute(
@@ -1008,22 +1264,28 @@
     }
   });
 
+  // Cambiar opciones de repetición.
   el("repeticionCuidado").addEventListener(
     "change",
     mostrarOpciones
   );
 
-  // ========================================
-  // EVENTOS DE SESIÓN
-  // ========================================
+  // ==========================================
+  // 16. EVENTOS DE INICIO DE SESIÓN
+  // ==========================================
 
   document.addEventListener(
     "geocuidado:login",
     () => {
       sesion++;
+
       cargar();
     }
   );
+
+  // ==========================================
+  // 17. EVENTO DE CIERRE DE SESIÓN
+  // ==========================================
 
   document.addEventListener(
     "geocuidado:logout",
@@ -1043,23 +1305,33 @@
 
       notificacionesCargadas = false;
 
+      pintarCuidados();
+      pintarResponsables();
+      pintarAvisos();
       pintarNotificaciones();
 
-      el("notificationToastContainer").replaceChildren();
+      el("notificationToastContainer")
+        .replaceChildren();
+
       el("notificationDropdown").hidden = true;
+
+      el("notificationBell").setAttribute(
+        "aria-expanded",
+        "false"
+      );
     }
   );
 
-  // ========================================
-  // NOTIFICACIONES DE PERÍMETRO
-  // ========================================
+  // ==========================================
+  // 18. ALERTAS DEL PERÍMETRO
+  // ==========================================
 
   document.addEventListener(
     "geocuidado:perimetro",
     async e => {
       if (!idToken) return;
 
-      const {fuera,posicion} = e.detail;
+      const { fuera, posicion } = e.detail;
 
       const texto =
         (
@@ -1079,14 +1351,11 @@
           true
         );
 
-        await guardarAviso(
-          fuera
-            ? "Salida de perímetro"
-            : "Regreso a zona segura",
-          texto
-        );
+        // Los avisos externos por WhatsApp
+        // se gestionan desde el servidor.
+        // No se envían desde el navegador.
 
-      } catch(error) {
+      } catch (error) {
         mostrarMensaje(
           "Error al registrar notificación: " +
           error.message
@@ -1095,16 +1364,17 @@
     }
   );
 
-  // ========================================
-  // INICIALIZACIÓN
-  // ========================================
+  // ==========================================
+  // 19. INICIALIZACIÓN
+  // ==========================================
 
   configurarFecha();
   mostrarOpciones();
   pintarNotificaciones();
 
   console.log(
-    "GeoCuidado: agenda y notificaciones iniciadas."
+    "GeoCuidado: agenda, responsables y " +
+    "notificaciones iniciadas correctamente."
   );
 
 })();

@@ -1,0 +1,28 @@
+GeoCuidado - Backend de WhatsApp (Firebase Cloud Functions)
+
+IMPORTANTE:
+1. El plan Spark NO permite desplegar Cloud Functions. Cambia a Blaze antes de desplegar.
+2. Rota el token temporal que apareció en capturas. Usa token de producción del sistema de Meta.
+3. Configura plantillas aprobadas en Meta:
+   geocuidado_alerta (idioma es): {{1}} / {{2}}
+   geocuidado_cuidado (idioma es): {{1}} / {{2}} / {{3}} / {{4}}
+   Si Meta aprueba otros nombres o idioma, edita functions/index.js.
+4. Cada responsable debe tener telefono (ej. 70578422) y whatsappAutorizado: true.
+   Obtén consentimiento explícito antes de activar este campo.
+5. Instala Node.js y Firebase CLI. Ejecuta:
+   npm install -g firebase-tools
+   firebase login
+   cd GeoCuidado_WhatsApp/functions
+   npm install
+   cd ..
+   firebase functions:secrets:set WA_TOKEN
+   firebase functions:secrets:set WA_PHONE_ID
+   firebase deploy --only functions
+6. Las alertas del ZIP original se guardan en /dispositivos/gps001/avisos DESDE EL NAVEGADOR.
+   Por tanto, en esta versión, el aviso de perímetro depende de que la web esté abierta.
+   Para detectar perímetro sin navegador, hay que mover la detección al ESP32 o al backend.
+7. La función de recordatorios sí se ejecuta en el servidor cada minuto y solo contempla
+   cuidados de fecha única o diarios. La programación semanal/mensual requiere ampliación.
+8. Los registros de envío quedan en /dispositivos/gps001/enviosWhatsApp.
+9. El estado aceptado_por_meta NO confirma entrega. Configura webhooks para estados reales.
+10. No usar como único sistema de emergencia para personas vulnerables.

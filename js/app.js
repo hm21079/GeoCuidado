@@ -5,6 +5,7 @@
 // GEOCUIDADO - GPS + FIREBASE + LEAFLET
 // ============================================
 
+// Configuración de Firebase y del dispositivo GPS.
 const CONFIG = {
   apiKey: "AIzaSyCV_N6ETuzLNTfFSolGY5mRT7v6AO8x_3E",
   databaseURL:
@@ -13,21 +14,33 @@ const CONFIG = {
   intervalo: 3000
 };
 
+// Ruta del dispositivo dentro de Firebase.
 const BASE = "dispositivos/" + CONFIG.dispositivo;
+
+// Función para obtener elementos del HTML.
 const $ = id => document.getElementById(id);
 
-// AUTENTICACIÓN
+// ============================================
+// 1. VARIABLES DE AUTENTICACIÓN
+// ============================================
+
 let idToken = null;
 let refreshToken = null;
 let tokenExpira = 0;
 let intervaloGPS = null;
 
-// MAPA
+// ============================================
+// 2. VARIABLES DEL MAPA LEAFLET
+// ============================================
+
 let mapa = null;
 let marcador = null;
 let circulo = null;
 
-// GPS Y PERÍMETRO
+// ============================================
+// 3. VARIABLES GPS Y PERÍMETRO
+// ============================================
+
 let posicionActual = null;
 let centroZona = null;
 let radioZona = 50;
@@ -37,10 +50,11 @@ let actualizando = false;
 let historial = [];
 
 // ============================================
-// AUTENTICACIÓN FIREBASE
+// 4. AUTENTICACIÓN FIREBASE
 // ============================================
 
 async function iniciarSesion(email, password) {
+
   const url =
     "https://identitytoolkit.googleapis.com/v1/accounts:" +
     "signInWithPassword?key=" +
@@ -74,7 +88,12 @@ async function iniciarSesion(email, password) {
     Number(datos.expiresIn || 3600) * 1000;
 }
 
+// ============================================
+// 5. RENOVAR TOKEN FIREBASE
+// ============================================
+
 async function tokenActual() {
+
   if (!idToken) {
     throw new Error("Debes iniciar sesión");
   }
@@ -116,14 +135,18 @@ async function tokenActual() {
 }
 
 // ============================================
-// FIREBASE REALTIME DATABASE
+// 6. FIREBASE REALTIME DATABASE
 // ============================================
+
+// Función general para consultar, guardar,
+// modificar o eliminar datos de Firebase.
 
 async function firebaseRequest(
   ruta,
   metodo = "GET",
   datos
 ) {
+
   const token = await tokenActual();
 
   const url =
@@ -157,30 +180,40 @@ async function firebaseRequest(
 }
 
 // ============================================
-// MAPA DE EL SALVADOR
+// 7. INICIALIZAR MAPA LEAFLET + ESRI
 // ============================================
 
 function iniciarMapa() {
+
+  // Evitar crear el mapa dos veces.
   if (mapa) return;
 
-  // Ubicación inicial en El Salvador
+  // Ubicación inicial en El Salvador.
   const inicial = [13.703783, -89.173117];
 
+  // Crear mapa con Leaflet.
   mapa = L.map("map", {
     center: inicial,
     zoom: 17,
     zoomControl: true
   });
 
-  // Cartografía de Esri, sin clave
+  // ==========================================
+  // CARTOGRAFÍA DE ESRI
+  // ==========================================
+
+  // Restaurar el mapa de calles anterior.
   L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
     {
-      attribution:
-        "Tiles &copy; Esri",
+      attribution: "Tiles &copy; Esri",
       maxZoom: 19
     }
   ).addTo(mapa);
+
+  // ==========================================
+  // MARCADOR AZUL DEL DISPOSITIVO GPS
+  // ==========================================
 
   marcador = L.circleMarker(inicial, {
     radius: 9,
@@ -190,9 +223,14 @@ function iniciarMapa() {
     fillOpacity: 1
   }).addTo(mapa);
 
+  // Información del marcador.
   marcador.bindPopup(
     "<strong>Dispositivo GPS</strong><br>gps001"
   );
+
+  // ==========================================
+  // CÍRCULO DE SEGURIDAD
+  // ==========================================
 
   circulo = L.circle(inicial, {
     radius: radioZona,
@@ -202,12 +240,18 @@ function iniciarMapa() {
     fillOpacity: 0.15
   }).addTo(mapa);
 
+  // Ajustar el mapa al tamaño del contenedor.
   setTimeout(() => {
     mapa.invalidateSize();
   }, 300);
 }
 
+// ============================================
+// 8. ACTUALIZAR MARCADOR GPS
+// ============================================
+
 function actualizarMarcador() {
+
   if (!mapa || !marcador || !posicionActual) {
     return;
   }
@@ -217,26 +261,37 @@ function actualizarMarcador() {
     posicionActual.lng
   ];
 
+  // Mover el marcador a la posición recibida.
   marcador.setLatLng(ubicacion);
+
+  // Centrar el mapa en el dispositivo.
   mapa.panTo(ubicacion);
 }
 
+// ============================================
+// 9. ACTUALIZAR CÍRCULO DE SEGURIDAD
+// ============================================
+
 function actualizarCirculo() {
+
   if (!circulo || !centroZona) return;
 
+  // Actualizar centro.
   circulo.setLatLng([
     centroZona.lat,
     centroZona.lng
   ]);
 
+  // Actualizar radio en metros.
   circulo.setRadius(radioZona);
 }
 
 // ============================================
-// CALCULAR DISTANCIA
+// 10. CALCULAR DISTANCIA EN METROS
 // ============================================
 
 function distanciaMetros(a, b) {
+
   const R = 6371000;
   const rad = grados => grados * Math.PI / 180;
 
@@ -256,18 +311,22 @@ function distanciaMetros(a, b) {
 }
 
 // ============================================
-// CONSULTAR GPS DESDE FIREBASE
+// 11. CONSULTAR GPS DESDE FIREBASE
 // ============================================
 
 async function consultarGPS() {
+
   if (actualizando || !idToken) return;
 
   actualizando = true;
 
   try {
+
+    // Obtener información del ESP32.
     const datos = await firebaseRequest(BASE);
 
     if (!datos) {
+
       $("estadoGPS").textContent =
         "Sin datos del GPS";
 
@@ -275,9 +334,11 @@ async function consultarGPS() {
       return;
     }
 
+    // Obtener latitud y longitud.
     const lat = Number(datos.latitud);
     const lng = Number(datos.longitud);
 
+    // Validar coordenadas GPS.
     if (
       datos.latitud == null ||
       datos.longitud == null ||
@@ -288,41 +349,61 @@ async function consultarGPS() {
       lng < -180 ||
       lng > 180
     ) {
+
       $("estadoGPS").textContent =
         "Esperando GPS...";
+
       return;
     }
 
+    // Guardar posición actual.
     posicionActual = { lat, lng };
 
+    // Actualizar conexión.
     $("conexion").textContent = "Datos recibidos";
 
+    // Mostrar coordenadas.
     $("coordenadas").textContent =
       lat.toFixed(6) + ", " + lng.toFixed(6);
 
+    // Mostrar satélites.
     $("satelites").textContent =
       "Satélites: " + (datos.satelites ?? "--");
 
+    // Mostrar hora de consulta.
     $("ultimaActualizacion").textContent =
       "Última consulta: " +
       new Date().toLocaleTimeString("es-SV");
 
+    // Enlace para abrir ubicación en Google Maps.
+    // Este enlace no modifica el mapa Leaflet.
     $("googleLink").href =
       "https://www.google.com/maps?q=" +
       lat + "," + lng;
 
+    // Actualizar marcador en Leaflet.
     actualizarMarcador();
 
+    // Definir centro inicial de seguridad.
     if (!centroZona) {
+
       centroZona = { ...posicionActual };
+
       actualizarCirculo();
     }
 
+    // Comprobar el perímetro.
     await comprobarPerimetro();
 
-    // Consultar el comando actual del buzzer
-    if (datos.control &&
-        typeof datos.control.buzzer === "boolean") {
+    // ========================================
+    // ESTADO DEL BUZZER
+    // ========================================
+
+    if (
+      datos.control &&
+      typeof datos.control.buzzer === "boolean"
+    ) {
+
       $("buzzerEstado").textContent =
         datos.control.buzzer
           ? "Comando: ACTIVAR"
@@ -330,6 +411,7 @@ async function consultarGPS() {
     }
 
   } catch (error) {
+
     $("conexion").textContent =
       "Error de conexión";
 
@@ -337,29 +419,34 @@ async function consultarGPS() {
     console.error(error);
 
   } finally {
+
     actualizando = false;
   }
 }
 
 // ============================================
-// CONTROL DEL BUZZER
+// 12. CONTROL DEL BUZZER
 // ============================================
 
 async function enviarBuzzer(
   activar,
   origen = "manual"
 ) {
+
+  // Enviar comando a Firebase.
   await firebaseRequest(
     BASE + "/control/buzzer",
     "PUT",
     activar
   );
 
+  // Actualizar estado.
   $("buzzerEstado").textContent =
     activar
       ? "Comando: ACTIVAR"
       : "Comando: DESACTIVAR";
 
+  // Registrar evento.
   registrarAlerta(
     activar
       ? "Buzzer activado (" + origen + ")"
@@ -373,17 +460,21 @@ async function enviarBuzzer(
 }
 
 // ============================================
-// GUARDAR ZONA DE SEGURIDAD
+// 13. GUARDAR ZONA DE SEGURIDAD
 // ============================================
 
 async function guardarZona() {
+
   if (!posicionActual) {
+
     mostrarMensaje(
       "Todavía no hay ubicación GPS"
     );
+
     return;
   }
 
+  // Preparar zona de seguridad.
   const nuevaZona = {
     latitud: posicionActual.lat,
     longitud: posicionActual.lng,
@@ -391,16 +482,21 @@ async function guardarZona() {
     alarmaAutomatica
   };
 
+  // Guardar en Firebase.
   await firebaseRequest(
     BASE + "/zona",
     "PUT",
     nuevaZona
   );
 
+  // Actualizar centro.
   centroZona = { ...posicionActual };
   fueraAnterior = false;
 
+  // Actualizar círculo.
   actualizarCirculo();
+
+  // Comprobar posición.
   await comprobarPerimetro();
 
   mostrarMensaje(
@@ -409,85 +505,139 @@ async function guardarZona() {
 }
 
 // ============================================
-// PROTECCIÓN PERIMETRAL
+// 14. PROTECCIÓN PERIMETRAL
 // ============================================
 
 async function comprobarPerimetro() {
+
   if (!posicionActual || !centroZona) return;
 
+  // Calcular distancia del dispositivo al centro.
   const distancia = distanciaMetros(
     centroZona,
     posicionActual
   );
 
+  // Determinar si salió de la zona.
   const fuera = distancia > radioZona;
 
+  // Mostrar distancia.
   $("distancia").textContent =
     "Distancia al centro: " +
     distancia.toFixed(1) + " m";
 
+  // Mostrar estado GPS.
   $("estadoGPS").textContent =
     fuera
       ? "Fuera de la zona segura"
       : "Dentro de la zona segura";
 
+  // Mostrar estado del perímetro.
   $("zonaEstado").textContent =
     fuera
       ? "ALERTA: dispositivo fuera del perímetro"
       : "Dispositivo dentro del perímetro";
 
+  // ========================================
+  // CAMBIAR COLOR DEL CÍRCULO
+  // ========================================
+
   if (circulo) {
+
     circulo.setStyle({
       color: fuera ? "#ef4444" : "#10b981",
       fillColor: fuera ? "#ef4444" : "#10b981"
     });
   }
 
-  if (fuera && !fueraAnterior) {
-    registrarAlerta("Salida del perímetro");
-    document.dispatchEvent(new CustomEvent("geocuidado:perimetro", {detail: {fuera: true, posicion: {...posicionActual}}}));
+  // ========================================
+  // SALIDA DEL PERÍMETRO
+  // ========================================
 
+  if (fuera && !fueraAnterior) {
+
+    registrarAlerta("Salida del perímetro");
+
+    // Notificar a cuidados.js.
+    document.dispatchEvent(
+      new CustomEvent("geocuidado:perimetro", {
+        detail: {
+          fuera: true,
+          posicion: { ...posicionActual }
+        }
+      })
+    );
+
+    // Activar alarma automática.
     if (alarmaAutomatica) {
+
       try {
+
         await enviarBuzzer(true, "perímetro");
+
       } catch (error) {
+
         mostrarMensaje(error.message);
       }
     }
   }
+
+  // ========================================
+  // REGRESO A ZONA SEGURA
+  // ========================================
 
   if (!fuera && fueraAnterior) {
-    registrarAlerta("Regreso a zona segura");
-    document.dispatchEvent(new CustomEvent("geocuidado:perimetro", {detail: {fuera: false, posicion: {...posicionActual}}}));
 
+    registrarAlerta("Regreso a zona segura");
+
+    // Notificar a cuidados.js.
+    document.dispatchEvent(
+      new CustomEvent("geocuidado:perimetro", {
+        detail: {
+          fuera: false,
+          posicion: { ...posicionActual }
+        }
+      })
+    );
+
+    // Desactivar alarma automática.
     if (alarmaAutomatica) {
+
       try {
+
         await enviarBuzzer(false, "perímetro");
+
       } catch (error) {
+
         mostrarMensaje(error.message);
       }
     }
   }
 
+  // Guardar estado anterior.
   fueraAnterior = fuera;
 }
 
 // ============================================
-// HISTORIAL DE ALERTAS
+// 15. HISTORIAL DE ALERTAS
 // ============================================
 
 function registrarAlerta(texto) {
+
   historial.unshift({
     fecha: new Date().toLocaleString("es-SV"),
     texto
   });
 
+  // Conservar últimos 100 eventos.
   historial = historial.slice(0, 100);
 
   const contenedor = $("historial");
+
   contenedor.replaceChildren();
 
   historial.forEach(item => {
+
     const div = document.createElement("div");
 
     div.textContent =
@@ -497,61 +647,80 @@ function registrarAlerta(texto) {
   });
 }
 
+// ============================================
+// 16. MOSTRAR MENSAJES
+// ============================================
+
 function mostrarMensaje(texto) {
   $("mensaje").textContent = texto;
 }
 
 // ============================================
-// INICIAR SESIÓN
+// 17. INICIAR SESIÓN
 // ============================================
 
 $("loginForm").addEventListener(
   "submit",
   async e => {
+
     e.preventDefault();
 
     $("loginError").textContent = "";
 
     try {
+
+      // Autenticar usuario.
       await iniciarSesion(
         $("email").value.trim(),
         $("password").value
       );
 
+      // Limpiar contraseña.
       $("password").value = "";
 
-      // Recuperar zona guardada
+      // ======================================
+      // RECUPERAR ZONA GUARDADA
+      // ======================================
+
       try {
+
         const zona = await firebaseRequest(
           BASE + "/zona"
         );
 
         if (zona) {
+
           const radio = Number(zona.radio);
 
+          // Recuperar radio.
           if (
             Number.isFinite(radio) &&
             radio >= 20 &&
             radio <= 1000
           ) {
+
             radioZona = radio;
           }
 
+          // Recuperar centro de seguridad.
           if (
             zona.latitud != null &&
             zona.longitud != null &&
             Number.isFinite(Number(zona.latitud)) &&
             Number.isFinite(Number(zona.longitud))
           ) {
+
             centroZona = {
               lat: Number(zona.latitud),
               lng: Number(zona.longitud)
             };
           }
 
+          // Recuperar alarma automática.
           alarmaAutomatica =
             zona.alarmaAutomatica !== false;
 
+          // Actualizar controles.
           $("radio").value = radioZona;
 
           $("radioTexto").textContent =
@@ -562,20 +731,32 @@ $("loginForm").addEventListener(
         }
 
       } catch (error) {
+
         mostrarMensaje(
           "No se pudo leer la zona: " +
           error.message
         );
       }
 
+      // Ocultar pantalla de acceso.
       $("login").classList.add("hidden");
 
-      document.dispatchEvent(new Event("geocuidado:login"));
+      // Avisar a cuidados.js del inicio de sesión.
+      document.dispatchEvent(
+        new Event("geocuidado:login")
+      );
+
+      // ======================================
+      // INICIAR MAPA LEAFLET + ESRI
+      // ======================================
+
       iniciarMapa();
       actualizarCirculo();
 
+      // Consultar primera ubicación.
       await consultarGPS();
 
+      // Actualizar GPS cada 3 segundos.
       clearInterval(intervaloGPS);
 
       intervaloGPS = setInterval(
@@ -584,6 +765,7 @@ $("loginForm").addEventListener(
       );
 
     } catch (error) {
+
       $("loginError").textContent =
         error.message;
     }
@@ -591,91 +773,126 @@ $("loginForm").addEventListener(
 );
 
 // ============================================
-// CERRAR SESIÓN
+// 18. CERRAR SESIÓN
 // ============================================
 
-$("logout").addEventListener("click", () => {
-  clearInterval(intervaloGPS);
-  intervaloGPS = null;
+$("logout").addEventListener(
+  "click",
+  () => {
 
-  document.dispatchEvent(new Event("geocuidado:logout"));
-  idToken = null;
-  refreshToken = null;
-  tokenExpira = 0;
+    // Detener consultas GPS.
+    clearInterval(intervaloGPS);
+    intervaloGPS = null;
 
-  $("login").classList.remove("hidden");
-  $("conexion").textContent = "Desconectado";
-});
+    // Avisar a cuidados.js.
+    document.dispatchEvent(
+      new Event("geocuidado:logout")
+    );
+
+    // Limpiar sesión.
+    idToken = null;
+    refreshToken = null;
+    tokenExpira = 0;
+
+    // Mostrar login.
+    $("login").classList.remove("hidden");
+
+    $("conexion").textContent =
+      "Desconectado";
+  }
+);
 
 // ============================================
-// CONTROL DEL RADIO
+// 19. CONTROL DEL RADIO
 // ============================================
 
-$("radio").addEventListener("input", e => {
-  radioZona = Number(e.target.value);
+$("radio").addEventListener(
+  "input",
+  e => {
 
-  $("radioTexto").textContent =
-    radioZona + " m";
+    radioZona = Number(e.target.value);
 
-  actualizarCirculo();
-});
+    // Actualizar texto.
+    $("radioTexto").textContent =
+      radioZona + " m";
+
+    // Actualizar círculo en Leaflet.
+    actualizarCirculo();
+  }
+);
 
 // ============================================
-// BOTÓN GUARDAR ZONA
+// 20. GUARDAR ZONA
 // ============================================
 
 $("guardarZona").addEventListener(
   "click",
   async () => {
+
     try {
+
       await guardarZona();
+
     } catch (error) {
+
       mostrarMensaje(error.message);
     }
   }
 );
 
 // ============================================
-// ACTIVAR BUZZER
+// 21. ACTIVAR BUZZER
 // ============================================
 
 $("buzzerOn").addEventListener(
   "click",
   async () => {
+
     try {
+
       await enviarBuzzer(true);
+
     } catch (error) {
+
       mostrarMensaje(error.message);
     }
   }
 );
 
 // ============================================
-// DESACTIVAR BUZZER
+// 22. DESACTIVAR BUZZER
 // ============================================
 
 $("buzzerOff").addEventListener(
   "click",
   async () => {
+
     try {
+
       await enviarBuzzer(false);
+
     } catch (error) {
+
       mostrarMensaje(error.message);
     }
   }
 );
 
 // ============================================
-// ALARMA AUTOMÁTICA
+// 23. ALARMA AUTOMÁTICA
 // ============================================
 
 $("alarmaAuto").addEventListener(
   "change",
   async e => {
+
     const anterior = alarmaAutomatica;
+
     alarmaAutomatica = e.target.checked;
 
     try {
+
+      // Guardar configuración en Firebase.
       await firebaseRequest(
         BASE + "/zona/alarmaAutomatica",
         "PUT",
@@ -689,15 +906,19 @@ $("alarmaAuto").addEventListener(
       );
 
     } catch (error) {
+
+      // Recuperar estado anterior si falla.
       alarmaAutomatica = anterior;
+
       $("alarmaAuto").checked = anterior;
+
       mostrarMensaje(error.message);
     }
   }
 );
 
 // ============================================
-// ACTUALIZAR DATOS
+// 24. ACTUALIZAR DATOS MANUALMENTE
 // ============================================
 
 $("actualizarDatos").addEventListener(
@@ -706,36 +927,58 @@ $("actualizarDatos").addEventListener(
 );
 
 // ============================================
-// NAVEGACIÓN DEL DASHBOARD
+// 25. NAVEGACIÓN DEL DASHBOARD
 // ============================================
 
 document.querySelectorAll(".nav").forEach(
   boton => {
-    boton.addEventListener("click", () => {
-      document.querySelectorAll(".nav").forEach(
-        b => b.classList.remove("active")
-      );
 
-      document.querySelectorAll(".view").forEach(
-        v => v.classList.remove("active")
-      );
+    boton.addEventListener(
+      "click",
+      () => {
 
-      boton.classList.add("active");
+        // Desactivar opciones del menú.
+        document.querySelectorAll(".nav")
+          .forEach(b => {
+            b.classList.remove("active");
+          });
 
-      $(boton.dataset.view).classList.add(
-        "active"
-      );
+        // Ocultar vistas.
+        document.querySelectorAll(".view")
+          .forEach(v => {
+            v.classList.remove("active");
+          });
 
-      if (
-        boton.dataset.view === "inicio" &&
-        mapa
-      ) {
-        setTimeout(() => {
-          mapa.invalidateSize();
-        }, 150);
+        // Activar opción seleccionada.
+        boton.classList.add("active");
+
+        // Mostrar sección correspondiente.
+        $(boton.dataset.view).classList.add(
+          "active"
+        );
+
+        // ====================================
+        // REAJUSTAR MAPA LEAFLET
+        // ====================================
+
+        if (
+          boton.dataset.view === "inicio" &&
+          mapa
+        ) {
+
+          setTimeout(() => {
+            mapa.invalidateSize();
+          }, 150);
+        }
       }
-    });
+    );
   }
 );
 
-console.log("GeoCuidado iniciado correctamente");
+// ============================================
+// 26. CONFIRMACIÓN DE INICIALIZACIÓN
+// ============================================
+
+console.log(
+  "GeoCuidado iniciado correctamente con Leaflet + Esri."
+);
