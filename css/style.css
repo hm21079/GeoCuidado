@@ -2248,3 +2248,89 @@ body.modal-abierto {
 /* ==================================================
    FIN - GEOCUIDADO STYLE.CSS
 ================================================== */
+
+/* ==================================================
+   10. AJUSTES RESPONSIVE COMPLEMENTARIOS (2026)
+   Solo presentación: no modifica Firebase, GPS ni Telegram.
+================================================== */
+
+/* Impide que textos largos y enlaces ensanchen toda la página. */
+html, body { max-width: 100%; }
+.layout, .content, .dashboard, .panel, .right-panel, .topbar,
+.view, .map-panel, .map-frame, .care-form, #formResponsable {
+  min-width: 0;
+  max-width: 100%;
+}
+.panel, .topbar, .state, .card, .notification-item,
+#listaResponsables, #listaCuidados, #historial {
+  overflow-wrap: anywhere;
+}
+img, video, canvas, svg:not(.ico) { max-width: 100%; }
+input, select, textarea { max-width: 100%; }
+
+/* Tablets: las columnas de los formularios se adaptan al espacio real. */
+@media (max-width: 1100px) {
+  #formResponsable { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 860px) {
+  /* Menú accesible por desplazamiento horizontal en lugar de comprimir 6 botones. */
+  .nav-list {
+    display: flex;
+    grid-template-columns: none;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+    justify-content: space-between;
+  }
+  .nav {
+    flex: 1 0 76px;
+    min-width: 76px;
+    max-width: none;
+    scroll-snap-align: center;
+    white-space: normal;
+    line-height: 1.2;
+  }
+  .content { min-width: 0; }
+  .dashboard > *, .right-panel > *, .map-panel, .map-frame { min-width: 0; }
+  #map { width: 100%; max-width: 100%; }
+  #formResponsable { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .sidebar { gap: 8px; }
+  .brand { min-width: 0; }
+  .brand-name { overflow-wrap: normal; }
+  .topbar, .topbar-title, .notification-top { min-width: 0; }
+  .panel { min-width: 0; }
+  #formResponsable,
+  .care-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #formResponsable > *,
+  .care-form > * { min-width: 0; max-width: 100%; }
+  #formResponsable > button,
+  .care-form > button { justify-self: stretch; width: 100%; }
+  .modal-overlay { padding: 12px; }
+  .modal, .modal-card, .login-card { max-width: calc(100vw - 24px); }
+  .button-row { flex-wrap: wrap; }
+  .button-row > button { flex: 1 1 140px; }
+  /* Evita el zoom automático de iOS al enfocar un campo. */
+  input, select, textarea { font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+  .nav { flex-basis: 72px; min-width: 72px; font-size: 10.5px; }
+  .content { padding-left: 10px; padding-right: 10px; }
+  .panel { padding: 12px; }
+  .brand-name { font-size: 15px; }
+  .logout-btn { padding-inline: 9px; }
+}
+
+@media (max-height: 500px) and (max-width: 860px) {
+  #map { height: min(60vh, 340px); min-height: 210px; }
+}

@@ -1,0 +1,13 @@
+GeoCuidado - actualización responsive
+
+Cambios: solo css/style.css (bloque 10 al final).
+Se conserva index.html, JS, servidor Telegram y firmware sin cambios funcionales.
+
+IMPORTANTE: Por seguridad el ZIP NO incluye .env ni .estado-local.json del servidor.
+Conserva esos dos archivos de tu instalación actual (contienen credenciales y vinculaciones).
+Copia tus valores existentes de firmware/credenciales.h al nuevo archivo si vas a reemplazar también firmware.
+
+Instalación recomendada: reemplaza únicamente css/style.css en tu proyecto actual.
+Después recarga el navegador con Ctrl+F5.
+
+El diseño se ajustó mediante CSS; no se ha verificado visualmente en dispositivos físicos.
